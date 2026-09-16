@@ -8,7 +8,7 @@ const ProfileContext = createContext(null)
 const LS_PROFILE_KEY = 'locus.profile.v1'
 const LS_DONE_KEY = 'locus.doneSteps.v1'
 
-export const EMPTY_PROFILE = {
+const EMPTY_PROFILE = {
   grade: null,
   field: null,
   countries: [],
@@ -52,7 +52,9 @@ function loadDoneIds() {
 
 export function ProfileProvider({ children }) {
   const [profile, setProfile] = useState(loadProfile)
-  const [doneIds, setDoneIds] = useState(loadDoneIds)
+  const [rawDone, setDoneIds] = useState(loadDoneIds)
+
+  const filled = Boolean(profile.grade && profile.field && profile.countries.length > 0)
 
   useEffect(() => {
     localStorage.setItem(LS_PROFILE_KEY, JSON.stringify(profile))
@@ -78,29 +80,23 @@ export function ProfileProvider({ children }) {
 
   // Производные данные пересчитываются реактивно при любом изменении профиля
   const scored = useMemo(() => {
-    const filled = profile.grade && profile.field && profile.countries.length > 0
     return filled ? scoreAllPrograms(profile) : []
-  }, [profile])
+  }, [filled, profile])
 
   const roadmap = useMemo(() => {
-    const filled = profile.grade && profile.field && profile.countries.length > 0
     return filled ? buildRoadmap(profile, scored) : []
-  }, [profile, scored])
+  }, [filled, scored, profile])
 
-  // Единственный владелец смысла done-шагов: выполнено только то, что есть
-  // в актуальном roadmap. Иначе протухшие id (профиль изменился, шаг исчез)
-  // инфлируют прогресс вплоть до >100%.
+  // Единственный смысл «выполнено»: шаг есть в актуальном roadmap — иначе
+  // протухшие id из прошлого профиля инфлируют прогресс вплоть до >100%
   const roadmapIdSet = useMemo(() => new Set(roadmap.map((s) => s.id)), [roadmap])
-  const effectiveDone = useMemo(
-    () => doneIds.filter((id) => roadmapIdSet.has(id)),
-    [doneIds, roadmapIdSet],
-  )
+  const doneIds = useMemo(() => rawDone.filter((id) => roadmapIdSet.has(id)), [rawDone, roadmapIdSet])
 
   useEffect(() => {
-    localStorage.setItem(LS_DONE_KEY, JSON.stringify(effectiveDone))
-  }, [effectiveDone])
+    localStorage.setItem(LS_DONE_KEY, JSON.stringify(doneIds))
+  }, [doneIds])
 
-  const progress = roadmap.length ? Math.round((effectiveDone.length / roadmap.length) * 100) : 0
+  const progress = roadmap.length ? Math.round((doneIds.length / roadmap.length) * 100) : 0
 
   const value = useMemo(
     () => ({
@@ -110,14 +106,13 @@ export function ProfileProvider({ children }) {
       loadDemo,
       resetProfile,
       doneIds,
-      effectiveDone,
       toggleDone,
       scored,
       roadmap,
       progress,
-      hasProfile: Boolean(profile.grade && profile.field && profile.countries.length > 0),
+      hasProfile: filled,
     }),
-    [profile, doneIds, effectiveDone, scored, roadmap, progress],
+    [profile, doneIds, scored, roadmap, progress, filled],
   )
 
   return <ProfileContext.Provider value={value}>{children}</ProfileContext.Provider>

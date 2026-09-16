@@ -4,7 +4,7 @@ import { formatMonth, getNextAction, getFearAccent } from '../engine/roadmap.js'
 import { ProgressRing } from '../components/Badges.jsx'
 
 export default function NextAction() {
-  const { profile, roadmap, doneIds, effectiveDone, toggleDone, hasProfile, progress } = useProfile()
+  const { profile, roadmap, doneIds, toggleDone, hasProfile, progress } = useProfile()
 
   if (!hasProfile) {
     return (
@@ -17,8 +17,6 @@ export default function NextAction() {
 
   const next = getNextAction(roadmap, doneIds)
   const fear = getFearAccent(profile.fear)
-  const total = roadmap.length
-  const doneCount = effectiveDone.length
 
   if (!next) {
     return (
@@ -32,6 +30,10 @@ export default function NextAction() {
       </div>
     )
   }
+
+  const done = doneIds.includes(next.id)
+  const total = roadmap.length
+  const doneCount = doneIds.length
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-10">
@@ -65,14 +67,13 @@ export default function NextAction() {
           <button
             type="button"
             onClick={() => toggleDone(next.id)}
-            aria-pressed={doneIds.includes(next.id)}
+            aria-pressed={done}
             aria-label="Отметить шаг выполненным"
-            className="h-8 w-8 rounded-full border-2 flex items-center justify-center transition-all shrink-0 mt-1"
-            style={{
-              background: doneIds.includes(next.id) ? '#4f46e5' : 'white',
-              borderColor: doneIds.includes(next.id) ? '#4f46e5' : '#cbd5e1',
-              color: doneIds.includes(next.id) ? 'white' : 'transparent',
-            }}
+            className={`h-8 w-8 rounded-full border-2 flex items-center justify-center transition-all shrink-0 mt-1 ${
+              done
+                ? 'bg-primary-600 border-primary-600 text-white'
+                : 'bg-white border-slate-300 text-transparent hover:border-primary-400'
+            }`}
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round">
               <path d="M20 6 9 17l-5-5" />
@@ -89,7 +90,7 @@ export default function NextAction() {
               </span>
             </div>
 
-            <h2 className={`mt-3 text-xl font-bold ${doneIds.includes(next.id) ? 'line-through text-slate-400' : 'text-slate-900'}`}>
+            <h2 className={`mt-3 text-xl font-bold ${done ? 'line-through text-slate-400' : 'text-slate-900'}`}>
               {next.title}
             </h2>
             <p className="mt-2 text-slate-600 text-sm sm:text-base">{next.desc}</p>
@@ -98,9 +99,9 @@ export default function NextAction() {
             <button
               type="button"
               onClick={() => toggleDone(next.id)}
-              className={`btn mt-5 ${doneIds.includes(next.id) ? 'btn-secondary' : 'btn-primary'}`}
+              className={`btn mt-5 ${done ? 'btn-secondary' : 'btn-primary'}`}
             >
-              {doneIds.includes(next.id) ? '↺ Вернуть в план' : '✓ Отметить выполненным'}
+              {done ? '↺ Вернуть в план' : '✓ Отметить выполненным'}
             </button>
           </div>
         </div>
