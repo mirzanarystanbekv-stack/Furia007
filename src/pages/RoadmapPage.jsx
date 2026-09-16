@@ -35,9 +35,11 @@ export default function RoadmapPage() {
         <ProgressRing value={progress} />
       </div>
 
-      <div className="mt-4 card p-4 border-l-4 border-l-primary-500 bg-primary-50/50 text-sm text-slate-700">
-        💡 Режим акцента: <b>{fear.label}</b> — {fear.text}
-      </div>
+      {fear.label && (
+        <div className="mt-4 card p-4 border-l-4 border-l-primary-500 bg-primary-50/50 text-sm text-slate-700">
+          💡 Режим акцента: <b>{fear.label}</b> — {fear.text}
+        </div>
+      )}
 
       {/* Таймлайн */}
       <ol className="mt-6 space-y-3 pb-16">

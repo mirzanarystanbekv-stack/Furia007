@@ -8,15 +8,6 @@ const ProfileContext = createContext(null)
 const LS_PROFILE_KEY = 'locus.profile.v1'
 const LS_DONE_KEY = 'locus.doneSteps.v1'
 
-function loadFromLS(key, fallback) {
-  try {
-    const raw = localStorage.getItem(key)
-    return raw ? JSON.parse(raw) : fallback
-  } catch {
-    return fallback
-  }
-}
-
 export const EMPTY_PROFILE = {
   grade: null,
   field: null,
@@ -31,17 +22,37 @@ export const EMPTY_PROFILE = {
   fear: null,
 }
 
+// localStorage может содержать что угодно (ручные правки, старые версии) —
+// проверяем форму данных, а не только парсимость
+function loadProfile() {
+  try {
+    const raw = localStorage.getItem(LS_PROFILE_KEY)
+    const parsed = raw ? JSON.parse(raw) : null
+    if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) return parsed
+  } catch {
+    // повреждённая запись — стартуем с пустого профиля
+  }
+  return { ...EMPTY_PROFILE }
+}
+
+function loadDoneIds() {
+  try {
+    const raw = localStorage.getItem(LS_DONE_KEY)
+    const parsed = raw ? JSON.parse(raw) : null
+    if (Array.isArray(parsed)) return parsed.filter((x) => typeof x === 'string')
+  } catch {
+    // повреждённая запись — стартуем с пустого списка
+  }
+  return []
+}
+
 export function ProfileProvider({ children }) {
-  const [profile, setProfile] = useState(() => loadFromLS(LS_PROFILE_KEY, EMPTY_PROFILE))
-  const [doneIds, setDoneIds] = useState(() => loadFromLS(LS_DONE_KEY, []))
+  const [profile, setProfile] = useState(loadProfile)
+  const [doneIds, setDoneIds] = useState(loadDoneIds)
 
   useEffect(() => {
     localStorage.setItem(LS_PROFILE_KEY, JSON.stringify(profile))
   }, [profile])
-
-  useEffect(() => {
-    localStorage.setItem(LS_DONE_KEY, JSON.stringify(doneIds))
-  }, [doneIds])
 
   const updateProfile = (patch) => setProfile((p) => ({ ...p, ...patch }))
 
@@ -72,7 +83,20 @@ export function ProfileProvider({ children }) {
     return filled ? buildRoadmap(profile, scored) : []
   }, [profile, scored])
 
-  const progress = roadmap.length ? Math.round((doneIds.length / roadmap.length) * 100) : 0
+  // Единственный владелец смысла done-шагов: выполнено только то, что есть
+  // в актуальном roadmap. Иначе протухшие id (профиль изменился, шаг исчез)
+  // инфлируют прогресс вплоть до >100%.
+  const roadmapIdSet = useMemo(() => new Set(roadmap.map((s) => s.id)), [roadmap])
+  const effectiveDone = useMemo(
+    () => doneIds.filter((id) => roadmapIdSet.has(id)),
+    [doneIds, roadmapIdSet],
+  )
+
+  useEffect(() => {
+    localStorage.setItem(LS_DONE_KEY, JSON.stringify(effectiveDone))
+  }, [effectiveDone])
+
+  const progress = roadmap.length ? Math.round((effectiveDone.length / roadmap.length) * 100) : 0
 
   const value = useMemo(
     () => ({
@@ -82,13 +106,14 @@ export function ProfileProvider({ children }) {
       loadDemo,
       resetProfile,
       doneIds,
+      effectiveDone,
       toggleDone,
       scored,
       roadmap,
       progress,
       hasProfile: Boolean(profile.grade && profile.field && profile.countries.length > 0),
     }),
-    [profile, doneIds, scored, roadmap, progress],
+    [profile, doneIds, effectiveDone, scored, roadmap, progress],
   )
 
   return <ProfileContext.Provider value={value}>{children}</ProfileContext.Provider>

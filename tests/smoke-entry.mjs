@@ -57,5 +57,29 @@ assert(d.strengths.length >= 2 && d.highGpaGrantFlag === true, 'диагност
 const d2 = diagnose({ ...profile, gpa: 3.0, ielts: 0 })
 assert(d2.risks.length >= 2, 'слабый профиль получает риски')
 
+// 6. ГРАНИЦЫ: пустой профиль не должен ронять движок
+const empty = {}
+const scoredEmpty = scoreAllPrograms(empty)
+assert(Array.isArray(scoredEmpty), `пустой профиль: скоринг не падает (${scoredEmpty.length} программ)`)
+const stepsEmpty = buildRoadmap(empty, scoredEmpty)
+assert(Array.isArray(stepsEmpty) && stepsEmpty.length >= 1, `пустой профиль: roadmap не падает (${stepsEmpty.length} шагов)`)
+const dEmpty = diagnose(empty)
+assert(Array.isArray(dEmpty.strengths) && Array.isArray(dEmpty.risks), 'пустой профиль: диагностика не падает, GPA трактуется как 0')
+
+// 7. ГРАНИЦЫ: мусор вместо GPA и IELTS
+const dGarbage = diagnose({ ...profile, gpa: '', ielts: '' })
+assert(dGarbage.highGpaGrantFlag === false && dGarbage.risks.some((r) => r.title.includes('успеваемость')),
+  "GPA '' трактуется как 0, а не как высокое значение")
+
+// 8. Языковой разрыв: IELTS 0 → шаг Hazırlık появляется в roadmap (требование спеки)
+const langGap = { ...profile, ielts: 0, countries: ['Турция'] }
+const scoredGap = scoreAllPrograms(langGap)
+const stepsGap = buildRoadmap(langGap, scoredGap)
+assert(stepsGap.some((s) => s.id === 'prep-year'), 'IELTS ниже порога → roadmap содержит шаг Hazırlık (+1 год)')
+
+// 9. getNextAction игнорирует протухшие id
+const ghostDone = [steps[0].id, 'ghost-1', 'ghost-2']
+assert(getNextAction(steps, ghostDone).id === steps[1].id, 'next action пропускает и валидные, и несуществующие done-id')
+
 console.log('')
 console.log('Итог: смоук-тест завершён, exit code =', process.exitCode ?? 0)

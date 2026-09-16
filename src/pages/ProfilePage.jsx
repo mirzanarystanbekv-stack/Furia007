@@ -44,8 +44,6 @@ function Chip({ option, active, onClick }) {
   )
 }
 
-const STEP_TITLES = ['Кто вы', 'Интересы и страны', 'Академия', 'Языки', 'Бюджет и приоритет', 'Главный страх']
-
 export default function ProfilePage() {
   const { profile, updateProfile, toggleCountry, loadDemo, resetProfile, hasProfile } = useProfile()
   const filled = hasProfile

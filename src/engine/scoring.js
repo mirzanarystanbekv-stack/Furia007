@@ -7,19 +7,14 @@ import programsData from '../data/universities.json'
 
 export const PROGRAMS = programsData.programs
 
-export const MAX_SCORE = 30 + 25 + 20 + 15 + 10 + 5 // 105
+export const MAX_BASE_SCORE = 30 + 25 + 20 + 15 + 10 // 100 — базовый порог без бонуса за достижения;
+// реальные скоры выше из-за множителей (грант-буст, класс)
 
 const GRANT_MULTIPLIER = 1.15
 const CREDIT_YEAR_MULTIPLIERS = { 9: 1.0, 10: 1.05, 11: 1.1 }
 
-// Текущий месяц для проверки «дедлайн не прошёл».
-// В демо-режиме можно переопределить: scoring.getNow = () => new Date(2026, 2, 1)
-let nowProvider = () => new Date()
-export function setNowProvider(fn) {
-  nowProvider = fn
-}
 export function getNow() {
-  return nowProvider()
+  return new Date()
 }
 
 function monthDiff(from, to) {
@@ -131,13 +126,14 @@ export function getRecommendations(profile, n = 3) {
 export function diagnose(profile) {
   const strengths = []
   const risks = []
+  const gpa = Number(profile.gpa) || 0 // '' и мусор из формы → 0
 
-  if ((profile.gpa ?? 0) >= 4.5) {
-    strengths.push({ title: 'Высокая успеваемость', text: `GPA ${profile.gpa}/5 — сильный показатель для грантовых программ.` })
-  } else if ((profile.gpa ?? 0) >= 3.5) {
-    strengths.push({ title: 'Хорошая успеваемость', text: `GPA ${profile.gpa}/5 — уверенная база; гранты с жёстким отбором потребуют усиления.` })
+  if (gpa >= 4.5) {
+    strengths.push({ title: 'Высокая успеваемость', text: `GPA ${gpa}/5 — сильный показатель для грантовых программ.` })
+  } else if (gpa >= 3.5) {
+    strengths.push({ title: 'Хорошая успеваемость', text: `GPA ${gpa}/5 — уверенная база; гранты с жёстким отбором потребуют усиления.` })
   } else {
-    risks.push({ title: 'Низкая успеваемость', text: `GPA ${profile.gpa}/5 — сфокусируйтесь на программах, где важнее экзамены (YÖS/ЕНТ), чем аттестат.` })
+    risks.push({ title: 'Низкая успеваемость', text: `GPA ${gpa}/5 — сфокусируйтесь на программах, где важнее экзамены (YÖS/ЕНТ), чем аттестат.` })
   }
 
   if (profile.achievements) {
@@ -170,7 +166,7 @@ export function diagnose(profile) {
   }
 
   // Модельное предположение из спеки — обязательно с бейджем «демо-оценка» в UI
-  const highGpaGrantFlag = (profile.gpa ?? 0) > 4.5
+  const highGpaGrantFlag = gpa > 4.5
 
   let goal = 'поступление по выбранному направлению'
   if (profile.field === 'it') goal = 'Computer Engineering / IT-программа'

@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom'
 import { useProfile } from '../context/ProfileContext.jsx'
-import { MAX_SCORE } from '../engine/scoring.js'
+import { MAX_BASE_SCORE } from '../engine/scoring.js'
 import { VerifiedBadge, DemoBadge } from '../components/Badges.jsx'
 
 function ProgramCard({ rec, rank }) {
@@ -15,7 +15,7 @@ function ProgramCard({ rec, rank }) {
         </div>
         <div className="text-right shrink-0">
           <div className="text-2xl font-extrabold text-primary-700">{Math.round(rec.score)}</div>
-          <div className="text-[11px] text-slate-400">из {MAX_SCORE}</div>
+          <div className="text-[11px] text-slate-400">базовый порог {MAX_BASE_SCORE}</div>
         </div>
       </div>
 

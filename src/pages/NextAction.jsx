@@ -4,7 +4,7 @@ import { formatMonth, getNextAction, getFearAccent } from '../engine/roadmap.js'
 import { ProgressRing } from '../components/Badges.jsx'
 
 export default function NextAction() {
-  const { profile, roadmap, doneIds, toggleDone, hasProfile, progress } = useProfile()
+  const { profile, roadmap, doneIds, effectiveDone, toggleDone, hasProfile, progress } = useProfile()
 
   if (!hasProfile) {
     return (
@@ -18,7 +18,7 @@ export default function NextAction() {
   const next = getNextAction(roadmap, doneIds)
   const fear = getFearAccent(profile.fear)
   const total = roadmap.length
-  const doneCount = doneIds.length
+  const doneCount = effectiveDone.length
 
   if (!next) {
     return (

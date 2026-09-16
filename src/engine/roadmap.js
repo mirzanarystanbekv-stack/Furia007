@@ -30,7 +30,10 @@ export function buildRoadmap(profile, scoredPrograms) {
   const hasTurkey = profile.countries?.includes('Турция')
   const hasKz = profile.countries?.includes('Казахстан')
 
-  const prepNeeded = top.some((r) => needsPrepYear(r.program, profile))
+  // Проверяем весь пул подходящих программ, а не только топ-3: программы с
+  // языковым порогом теряют баллы и проваливаются из топ-3 именно тогда,
+  // когда язык пользователя слаб — а предупреждение как раз нужно в этот момент
+  const prepNeeded = scoredPrograms.some((r) => needsPrepYear(r.program, profile))
 
   // --- Подготовка экзаменов ---
   if (hasTurkey && profile.grade >= 10) {
