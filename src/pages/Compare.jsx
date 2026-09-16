@@ -50,28 +50,12 @@ export default function Compare() {
 
   const cols = selected.map((i) => top[i]).filter(Boolean)
 
-  // Пользователь может снять все колонки — подсказка вместо падения ( TypeError cols[0].program )
-  if (cols.length === 0) {
-    return (
-      <div className="max-w-4xl mx-auto px-4 py-10">
-        <h1 className="text-2xl sm:text-3xl font-bold text-slate-900">Сравнение вариантов</h1>
-        <div className="mt-6 card p-8 text-center">
-          <p className="text-slate-600">Выберите хотя бы одну программу кнопками выше — колонки появятся здесь.</p>
-        </div>
-        <div className="mt-8 flex justify-between pb-10">
-          <Link to="/recommendations" className="btn-ghost text-sm">← К рекомендациям</Link>
-          <Link to="/roadmap" className="btn-primary">К roadmap →</Link>
-        </div>
-      </div>
-    )
-  }
-
   return (
     <div className="max-w-4xl mx-auto px-4 py-10">
       <h1 className="text-2xl sm:text-3xl font-bold text-slate-900">Сравнение вариантов</h1>
       <p className="text-sm text-slate-500 mt-1">Выберите две программы для сравнения — колонки переключаются кликом</p>
 
-      {/* Переключатель колонок */}
+      {/* Переключатель колонок — всегда на экране, чтобы выбор и снятие выбора не заводили в тупик */}
       <div className="mt-4 flex flex-wrap gap-2">
         {top.map((r, i) => (
           <button
@@ -89,54 +73,62 @@ export default function Compare() {
         ))}
       </div>
 
-      {/* Таблица сравнения — карточки на мобиле, таблица на десктопе */}
-      <div className="mt-6 hidden md:block overflow-x-auto">
-        <table className="w-full text-sm">
-          <thead>
-            <tr>
-              <th className="text-left p-3 text-xs uppercase tracking-wide text-slate-400 w-44">Параметр</th>
-              {cols.map((rec) => (
-                <th key={rec.program.id} className="text-left p-3">
-                  <div className="font-bold text-slate-900">{rec.program.university}</div>
-                  <div className="text-xs text-slate-500 font-normal">{rec.program.program}</div>
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-100">
-            {ROWS.map((row) => (
-              <tr key={row.key} className="align-top">
-                <td className="p-3 text-xs font-semibold text-slate-500">{row.label}</td>
-                {cols.map((rec) => (
-                  <td key={rec.program.id} className="p-3 text-slate-800">{row.render(rec.program)}</td>
+      {cols.length === 0 ? (
+        <div className="mt-6 card p-8 text-center">
+          <p className="text-slate-600">Выберите хотя бы одну программу — колонки появятся здесь.</p>
+        </div>
+      ) : (
+        <>
+          {/* Таблица сравнения — карточки на мобиле, таблица на десктопе */}
+          <div className="mt-6 hidden md:block overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr>
+                  <th className="text-left p-3 text-xs uppercase tracking-wide text-slate-400 w-44">Параметр</th>
+                  {cols.map((rec) => (
+                    <th key={rec.program.id} className="text-left p-3">
+                      <div className="font-bold text-slate-900">{rec.program.university}</div>
+                      <div className="text-xs text-slate-500 font-normal">{rec.program.program}</div>
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {ROWS.map((row) => (
+                  <tr key={row.key} className="align-top">
+                    <td className="p-3 text-xs font-semibold text-slate-500">{row.label}</td>
+                    {cols.map((rec) => (
+                      <td key={rec.program.id} className="p-3 text-slate-800">{row.render(rec.program)}</td>
+                    ))}
+                  </tr>
                 ))}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      {/* Мобильная версия: карточки попарно */}
-      <div className="mt-6 md:hidden space-y-4">
-        {ROWS.map((row) => (
-          <div key={row.key} className="card p-4">
-            <div className="text-xs font-semibold uppercase tracking-wide text-slate-400">{row.label}</div>
-            <div className="mt-2 grid grid-cols-2 gap-3">
-              {cols.map((rec) => (
-                <div key={rec.program.id} className="text-sm text-slate-800">
-                  <span className="block text-[10px] text-primary-600 font-bold">{rec.program.university.split('(')[0].trim()}</span>
-                  {row.render(rec.program)}
-                </div>
-              ))}
-            </div>
+              </tbody>
+            </table>
           </div>
-        ))}
-      </div>
 
-      <div className="mt-6 card p-4 flex flex-wrap items-center gap-2 bg-slate-50/60">
-        {cols.every((rec) => rec.program.verified) ? <VerifiedBadge source={cols[0].program.source} /> : <DemoBadge />}
-        <span className="text-xs text-slate-500">Проверяйте актуальные требования на официальных сайтах вузов перед подачей.</span>
-      </div>
+          {/* Мобильная версия: карточки попарно */}
+          <div className="mt-6 md:hidden space-y-4">
+            {ROWS.map((row) => (
+              <div key={row.key} className="card p-4">
+                <div className="text-xs font-semibold uppercase tracking-wide text-slate-400">{row.label}</div>
+                <div className="mt-2 grid grid-cols-2 gap-3">
+                  {cols.map((rec) => (
+                    <div key={rec.program.id} className="text-sm text-slate-800">
+                      <span className="block text-[10px] text-primary-600 font-bold">{rec.program.university.split('(')[0].trim()}</span>
+                      {row.render(rec.program)}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-6 card p-4 flex flex-wrap items-center gap-2 bg-slate-50/60">
+            {cols.every((rec) => rec.program.verified) ? <VerifiedBadge source={cols[0].program.source} /> : <DemoBadge />}
+            <span className="text-xs text-slate-500">Проверяйте актуальные требования на официальных сайтах вузов перед подачей.</span>
+          </div>
+        </>
+      )}
 
       <div className="mt-8 flex flex-col sm:flex-row justify-between gap-3 pb-10">
         <Link to="/recommendations" className="btn-ghost text-sm">← К рекомендациям</Link>
