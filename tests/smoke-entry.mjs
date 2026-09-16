@@ -39,10 +39,20 @@ const metuPoor = scoredPoor.find((r) => r.program.id === 'metu-ceng')
 assert(metuPoor && !metuPoor.reasons.some((x) => x.reason.includes('олимпиады')),
   'без достижений исчезает бонус +5 в причинах')
 
-// 3. Приоритет «платное ок» поднимает платные программы
+// 3. Приоритет «платное ок» меняет поведение: буст-причина исчезает у грантовых,
+//    порядок топ-3 реагирует
 const paid = scoreAllPrograms({ ...profile, priority: 'paid-ok' })
-assert(JSON.stringify(paid.slice(0, 3).map((r) => r.program.id)) !== JSON.stringify(scored.slice(0, 3).map((r) => r.program.id)),
-  'приоритет грант/платное меняет порядок топ-3')
+const grantTop = scored.slice(0, 3)
+assert(grantTop.some((r) => r.reasons.some((x) => x.isBoost)) && !paid.slice(0, 3).some((r) => r.reasons.some((x) => x.isBoost)),
+  'буст-причины приоритета «грант» появляются/исчезают при переключении приоритета')
+// Скор бесплатной грантовой при «гранте» ровно 1.15× от «платное ок»; у платной
+// «грантовой» (KBTU, $4k) скоры равны — буст её не касается
+const metuG = scored.find((r) => r.program.id === 'metu-ceng').score
+const metuP = paid.find((r) => r.program.id === 'metu-ceng').score
+assert(Math.abs(metuG - metuP * 1.15) < 1e-9, `скор METU при «гранте» = 1.15× от «платное ок» (${metuG.toFixed(1)} vs ${metuP.toFixed(1)})`)
+const kbtuG = scored.find((r) => r.program.id === 'kbtu-it').score
+const kbtuP = paid.find((r) => r.program.id === 'kbtu-it').score
+assert(Math.abs(kbtuG - kbtuP) < 1e-9, 'платная «грантовая» (KBTU $4k) имеет одинаковый скор при обоих приоритетах')
 
 // 4. Roadmap: шаги строятся, есть next action
 const steps = buildRoadmap(profile, scored)
@@ -118,6 +128,30 @@ const metuD = dualScored.find((r) => r.program.id === 'metu-ceng')
 const hseD = dualScored.find((r) => r.program.id === 'hse-econ')
 assert(Boolean(metuD && hseD && metuD.score > 0 && hseD.score > 0),
   'мультивыбор [it, economics]: программы обоих направлений получают баллы')
+
+// 14. REGRESSION: +30 направления при массиве И при легаси-строке (миграция field)
+//     До фикса массив давал 77 вместо 107 — главное слагаемое молча исчезало
+const arrProfile = { ...profile, field: ['it'] }
+const strProfile = { ...profile, field: 'it' } // легаси-форма из старых сессий
+const metuArr = scoreAllPrograms(arrProfile).find((r) => r.program.id === 'metu-ceng')
+const metuStr = scoreAllPrograms(strProfile).find((r) => r.program.id === 'metu-ceng')
+assert(metuArr.reasons.some((x) => x.points === 30), 'массив field: программа интереса получает +30')
+assert(metuStr.reasons.some((x) => x.points === 30), 'легаси-строка field: +30 сохраняется (единый порядок)')
+assert(Math.abs(metuArr.score - metuStr.score) < 1e-9, `скор массива и строки совпадает (${metuArr.score.toFixed(1)} vs ${metuStr.score.toFixed(1)})`)
+
+// 15. REGRESSION: приоритет «грант» бустит только безусловно бесплатные (tuition 0)
+//     Асu-программы с merit-scholarship ($18k+) не должны подниматься грант-бустом
+const grantPrio = { ...profile, field: ['engineering'], priority: 'grant' }
+const boosted = scoreAllPrograms(grantPrio).find((r) => r.program.id === 'rwth-mech') // tuition 400, грант
+const asu = scoreAllPrograms(grantPrio).find((r) => r.program.id === 'asu-cs') // tuition 18000, "грант"
+assert(Boolean(boosted) && boosted.reasons.some((x) => x.isBoost), 'бесплатная грантовая (RWTH) получает грант-буст')
+assert(Boolean(asu) && !asu.reasons.some((x) => x.isBoost), 'платная "грантовая" (ASU, $18k) грант-буст не получает')
+
+// 16. Честный бюджет: «грант покрывает» только при реальном нуле; иначе — цена + грант-хинт
+const asuMid = scoreAllPrograms({ ...profile, field: ['it'], budget: 'mid', priority: 'paid-ok' }).find((r) => r.program.id === 'asu-cs')
+assert(asuMid.reasons.some((x) => x.points === 0 && x.reason.includes('дорого')), 'ASU при среднем бюджете честно помечен «дорого»')
+const metuMid = scoreAllPrograms({ ...profile, field: ['it'], budget: 'mid', priority: 'grant' }).find((r) => r.program.id === 'metu-ceng')
+assert(metuMid.reasons.some((x) => x.points === 15 && x.reason.includes('грант покрывает')), 'METU (tuition 0): «грант покрывает обучение»')
 
 // 13. Целостность датасета: каждая страна и направление из анкеты представлены
 const fieldsCovered = new Set(PROGRAMS.map((p) => p.field))

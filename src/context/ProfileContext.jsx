@@ -70,7 +70,8 @@ export function ProfileProvider({ children }) {
   const [rawDone, setDoneIds] = useState(loadDoneIds)
   const [favs, setFavs] = useState(loadFavs)
 
-  const filled = Boolean(profile.grade && profile.field && profile.countries.length > 0)
+  // field — массив (мультивыбор); truthy-массив пустой длины не считается заполненным
+  const filled = Boolean(profile.grade && profile.field?.length > 0 && profile.countries.length > 0)
 
   useEffect(() => {
     localStorage.setItem(LS_PROFILE_KEY, JSON.stringify(profile))

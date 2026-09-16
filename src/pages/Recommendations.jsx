@@ -11,7 +11,7 @@ const SORTS = [
   { value: 'deadline', label: 'Ближе дедлайн' },
 ]
 
-export function ProgramCard({ rec, rank, fav, onFav, compareSelected, onCompare }) {
+function ProgramCard({ rec, rank, fav, onFav, compareSelected, onCompare }) {
   const p = rec.program
   return (
     <article className="card p-5 sm:p-6 hover:shadow-card-hover transition-shadow flex flex-col">

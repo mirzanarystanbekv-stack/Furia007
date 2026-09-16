@@ -23,6 +23,13 @@ function monthDiff(from, to) {
 
 const CEFR_ORDER = ['A1', 'A2', 'B1', 'B2', 'C1']
 
+// Форма интереса — массив (мультивыбор из анкеты). Легаси-профили из старых
+// сессий хранят строку — нормализуем в одном месте
+function fieldList(profile) {
+  if (Array.isArray(profile?.field)) return profile.field
+  return profile?.field ? [profile.field] : []
+}
+
 // Самооценка уровня целевого языка из анкеты (поле 5): A1=1 … C1=5, не выбран = 0.
 // Уверенным считаем B1 и выше: тогда самооценка может закрыть языковой порог ≤6.0,
 // ниже — ненадёжна и на логику не влияет.
@@ -46,20 +53,27 @@ export function needsPrepYear(program, profile) {
 
 function assessBudget(program, profile) {
   const tuition = program.tuition_usd ?? 0
-  if (program.grant && profile.priority === 'grant') {
-    return { fits: true, note: 'грант покрывает обучение' }
+  const fmt = (n) => n.toLocaleString('ru-RU')
+  const grantHint = program.grant ? ' — грант может покрыть, проверьте условия конкурса' : ''
+  // Бесплатное (грантовое) обучение — честный ноль в данных
+  if (tuition === 0) {
+    return { fits: true, note: program.grant ? 'грант покрывает обучение' : 'обучение бесплатное' }
   }
   if (profile.budget === 'high') return { fits: true, note: 'бюджет позволяет платное обучение' }
-  if (profile.budget === 'mid') return { fits: tuition <= 3000, note: tuition <= 3000 ? 'стоимость в рамках среднего бюджета (~$3 000/год)' : `дорого для среднего бюджета (≈$${tuition.toLocaleString('ru-RU')}/год)` }
-  return { fits: tuition <= 1500, note: tuition <= 1500 ? 'стоимость в рамках низкого бюджета (~$1 500/год)' : `дорого для низкого бюджета (≈$${tuition.toLocaleString('ru-RU')}/год)` }
+  if (profile.budget === 'mid') {
+    if (tuition <= 3000) return { fits: true, note: 'стоимость в рамках среднего бюджета (~$3 000/год)' }
+    return { fits: false, note: `дорого для среднего бюджета (≈$${fmt(tuition)}/год)${grantHint}` }
+  }
+  if (tuition <= 1500) return { fits: true, note: 'стоимость в рамках низкого бюджета (~$1 500/год)' }
+  return { fits: false, note: `дорого для низкого бюджета (≈$${fmt(tuition)}/год)${grantHint}` }
 }
 
 function scoreProgram(program, profile) {
   const reasons = []
   let score = 0
 
-  // +30 направление
-  if (program.field === profile.field) {
+  // +30 направление (любой из выбранных интересов, мультивыбор до 3)
+  if (fieldList(profile).includes(program.field)) {
     score += 30
     reasons.push({ reason: 'Направление совпадает с вашим интересом', points: 30 })
   }
@@ -125,8 +139,11 @@ function scoreProgram(program, profile) {
   // Множитель класса: чем ближе выпуск, тем приоритетнее реалистичные варианты
   score *= CREDIT_YEAR_MULTIPLIERS[profile.grade] ?? 1
 
-  // Приоритет «грант»: грантовые поднимаются множителем
-  if (profile.priority === 'grant' && program.grant) {
+  // Приоритет «грант» обещает «в первую очередь бесплатное»: буст получают
+  // только программы с бесплатным обучением (tuition 0 или семестровый взнос
+  // < $1000, как в госвузах Германии). «Грантовые» с платным fallback
+  // (merit-scholarships США $18k+) не поднимаются — это не бесплатное
+  if (profile.priority === 'grant' && program.grant && (program.tuition_usd ?? 0) < 1000) {
     score *= GRANT_MULTIPLIER
     reasons.push({ reason: 'Приоритет «грант» — программа грантовая, поднята в списке', points: 0, isBoost: true })
   }
@@ -151,7 +168,7 @@ export function diagnose(profile) {
   const strengths = []
   const risks = []
   const gpa = Number(profile.gpa) || 0 // '' и мусор из формы → 0
-  const fields = Array.isArray(profile.field) ? profile.field : profile.field ? [profile.field] : []
+  const fields = fieldList(profile)
 
   if (gpa === 0) {
     // GPA не указан — это не «низкая успеваемость», а отсутствие данных
