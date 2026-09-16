@@ -47,13 +47,8 @@ function Chip({ option, active, onClick }) {
 const STEP_TITLES = ['Кто вы', 'Интересы и страны', 'Академия', 'Языки', 'Бюджет и приоритет', 'Главный страх']
 
 export default function ProfilePage() {
-  const { profile, updateProfile, loadDemo, resetProfile, hasProfile } = useProfile()
+  const { profile, updateProfile, toggleCountry, loadDemo, resetProfile, hasProfile } = useProfile()
   const filled = hasProfile
-
-  const toggleCountry = (c) => {
-    const has = profile.countries.includes(c)
-    updateProfile({ countries: has ? profile.countries.filter((x) => x !== c) : [...profile.countries, c] })
-  }
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-10">

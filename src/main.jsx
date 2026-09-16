@@ -1,6 +1,6 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
-import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { HashRouter, Routes, Route } from 'react-router-dom'
 import './index.css'
 import { ProfileProvider } from './context/ProfileContext.jsx'
 import Layout from './components/Layout.jsx'
@@ -14,7 +14,7 @@ import NextAction from './pages/NextAction.jsx'
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
-    <BrowserRouter>
+    <HashRouter>
       <ProfileProvider>
         <Routes>
           <Route element={<Layout />}>
@@ -29,6 +29,6 @@ ReactDOM.createRoot(document.getElementById('root')).render(
           </Route>
         </Routes>
       </ProfileProvider>
-    </BrowserRouter>
+    </HashRouter>
   </React.StrictMode>,
 )

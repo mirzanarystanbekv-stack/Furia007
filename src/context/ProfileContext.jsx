@@ -45,6 +45,13 @@ export function ProfileProvider({ children }) {
 
   const updateProfile = (patch) => setProfile((p) => ({ ...p, ...patch }))
 
+  // Функциональное обновление — безопасно при быстрых кликах по чипам стран
+  const toggleCountry = (c) =>
+    setProfile((p) => {
+      const has = p.countries.includes(c)
+      return { ...p, countries: has ? p.countries.filter((x) => x !== c) : [...p.countries, c] }
+    })
+
   const loadDemo = () => setProfile({ ...DEMO_PROFILE })
   const resetProfile = () => {
     setProfile({ ...EMPTY_PROFILE })
@@ -71,6 +78,7 @@ export function ProfileProvider({ children }) {
     () => ({
       profile,
       updateProfile,
+      toggleCountry,
       loadDemo,
       resetProfile,
       doneIds,
