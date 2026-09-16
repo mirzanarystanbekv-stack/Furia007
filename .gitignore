@@ -19,5 +19,5 @@ Thumbs.db
 .vscode/
 .idea/
 
-# Portable tools (Node)
-tools/node/
+# Portable tools (локальный Node.js, машинно-специфичный)
+tools/
