@@ -21,3 +21,6 @@ Thumbs.db
 
 # Portable tools (локальный Node.js, машинно-специфичный)
 tools/
+
+# Mobile viewport harness (verification tooling, not product code)
+mobile-harness.html
