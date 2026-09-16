@@ -24,19 +24,19 @@ export function buildRoadmap(profile, scoredPrograms) {
   const baseY = now.getFullYear()
   const steps = []
 
-  const top = scoredPrograms.slice(0, 3)
+  // Все проверки плана — только по программам выбранных стран: заявки, языковые
+  // пороги и Hazırlık касаются того, куда пользователь реально собирается.
+  // Альтернативы-добор из других стран (outsideChoice) в пошаговый план не попадают
+  const chosenPrograms = profile.countries?.length
+    ? scoredPrograms.filter((r) => profile.countries.includes(r.program.country))
+    : scoredPrograms
+  const top = chosenPrograms.slice(0, 3)
   const topGrant = top.find((r) => r.program.grant)
 
   const hasTurkey = profile.countries?.includes('Турция')
   const hasKz = profile.countries?.includes('Казахстан')
 
-  // Проверяем программы из выбранных пользователем стран: предупреждаем, только
-  // если среди них есть те, куда пользователь не проходит по языку. Программы
-  // незаявленных стран (даже с высоким порогом) к плану пользователя не относятся
-  const inChosen = scoredPrograms.filter(
-    (r) => !profile.countries?.length || profile.countries.includes(r.program.country),
-  )
-  const prepNeeded = inChosen.some((r) => needsPrepYear(r.program, profile))
+  const prepNeeded = chosenPrograms.some((r) => needsPrepYear(r.program, profile))
 
   // --- Подготовка экзаменов ---
   if (hasTurkey && profile.grade >= 10) {
@@ -49,12 +49,9 @@ export function buildRoadmap(profile, scoredPrograms) {
       source: 'даты по прошлым годам',
     })
   }
-  // IELTS нужен, если в выбранных странах есть программы с англ. порогом, которые
+  // IELTS нужен, если среди выбранных программ есть англ. пороги, которые
   // пользователь ещё не закрывает сертификатом (не только Турция — Германия и
   // Корея тоже требуют 6.0+)
-  const chosenPrograms = profile.countries?.length
-    ? scoredPrograms.filter((r) => profile.countries.includes(r.program.country))
-    : scoredPrograms
   const ieltsNeeded = chosenPrograms.some(
     (r) => typeof r.program.ielts_required === 'number' && (Number(profile.ielts) || 0) < r.program.ielts_required,
   )

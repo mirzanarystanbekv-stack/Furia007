@@ -55,9 +55,14 @@ function assessBudget(program, profile) {
   const tuition = program.tuition_usd ?? 0
   const fmt = (n) => n.toLocaleString('ru-RU')
   const grantHint = program.grant ? ' — грант может покрыть, проверьте условия конкурса' : ''
-  // Бесплатное (грантовое) обучение — честный ноль в данных
+  // Бесплатное (грантовое) обучение — честный ноль в данных; формулировка
+  // «грант покрывает» как факт — только для verified-программ
   if (tuition === 0) {
-    return { fits: true, note: program.grant ? 'грант покрывает обучение' : 'обучение бесплатное' }
+    if (!program.grant) return { fits: true, note: 'обучение бесплатное' }
+    return {
+      fits: true,
+      note: program.verified ? 'грант покрывает обучение' : 'грант может покрывать обучение (демо-данные — проверьте условия конкурса)',
+    }
   }
   if (profile.budget === 'high') return { fits: true, note: 'бюджет позволяет платное обучение' }
   if (profile.budget === 'mid') {
@@ -151,11 +156,19 @@ function scoreProgram(program, profile) {
   return { program, eligible: true, score, reasons, monthsLeft }
 }
 
-// Главный вход движка: полный список с разбивкой по причинам
+// Главный вход движка: полный список с разбивкой по причинам.
+// Выбор стран пользователя — фильтр пула рекомендаций: программы выбранных стран
+// всегда раньше всех остальных (кросс-страновые скоры не должны их обгонять).
+// Если выбранных меньше 3 (ОАЭ = 2), список добирается альтернативами из других
+// стран — с флагом outsideChoice для честного бейджа в UI
 export function scoreAllPrograms(profile) {
-  return PROGRAMS.map((p) => scoreProgram(p, profile))
-    .filter((r) => r.eligible)
+  const all = PROGRAMS.map((p) => scoreProgram(p, profile)).filter((r) => r.eligible)
+  const chosen = all.filter((r) => profile.countries?.includes(r.program.country)).sort((a, b) => b.score - a.score)
+  const rest = all
+    .filter((r) => !profile.countries?.includes(r.program.country))
+    .map((r) => ({ ...r, outsideChoice: true }))
     .sort((a, b) => b.score - a.score)
+  return [...chosen, ...rest]
 }
 
 // Топ-N рекомендаций

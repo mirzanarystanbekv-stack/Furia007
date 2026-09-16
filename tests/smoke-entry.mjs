@@ -153,6 +153,38 @@ assert(asuMid.reasons.some((x) => x.points === 0 && x.reason.includes('доро�
 const metuMid = scoreAllPrograms({ ...profile, field: ['it'], budget: 'mid', priority: 'grant' }).find((r) => r.program.id === 'metu-ceng')
 assert(metuMid.reasons.some((x) => x.points === 15 && x.reason.includes('грант покрывает')), 'METU (tuition 0): «грант покрывает обучение»')
 
+// 17. Кросс-страновая семантика: выбранные страны всегда раньше альтернатив.
+//     До фикса METU (Турция, грант-буст) была #1 для профиля Польша+Венгрия
+const plHu = { grade: 11, field: ['medicine'], countries: ['Польша', 'Венгрия'], gpa: 4.8, achievements: false, achievements_text: '', ielts: '', target_lang_level: 'B2', budget: 'low', priority: 'grant', fear: null }
+const plHuScored = scoreAllPrograms(plHu)
+assert(plHuScored[0].program.country === 'Польша' || plHuScored[0].program.country === 'Венгрия',
+  `топ-рекомендация из выбранной страны (${plHuScored[0].program.country}, ${plHuScored[0].program.id})`)
+const firstOutside = plHuScored.findIndex((r) => r.outsideChoice)
+assert(firstOutside >= 3, `все выбранные программы раньше альтернатив (первая альтернатива: позиция ${firstOutside + 1})`)
+assert(plHuScored.every((r) => (r.outsideChoice ? !plHu.countries.includes(r.program.country) : plHu.countries.includes(r.program.country))),
+  'outsideChoice размечен ровно у невыбранных стран')
+const alt = plHuScored.find((r) => r.outsideChoice)
+assert(!alt.reasons.some((x) => x.points === 25), 'альтернатива не получает +25 страны')
+
+// 18. Малая страна (ОАЭ = 2 программы): спека требует минимум 3 рекомендации —
+//     добор альтернативами с пометкой
+const uae = { ...plHu, field: ['engineering'], countries: ['ОАЭ'] }
+const uaeScored = scoreAllPrograms(uae)
+const uaeChosen = uaeScored.filter((r) => !r.outsideChoice)
+assert(uaeScored.length >= 3, `малая страна: ${uaeScored.length} рекомендаций (нужно >=3)`)
+assert(uaeChosen.length === 2, 'ОАЭ: 2 выбранных программы')
+assert(uaeScored.slice(2).every((r) => r.outsideChoice), 'добор после выбранных помечен как альтернатива')
+
+// 19. Roadmap: заявки только в выбранные страны — план 9-классника Казахстана
+//     без «Подать заявку: METU»
+const stepsPlHu = buildRoadmap(plHu, plHuScored)
+const applySteps = stepsPlHu.filter((s) => s.id.startsWith('apply-'))
+assert(applySteps.length > 0 && applySteps.every((s) => {
+  const target = plHuScored.find((r) => `apply-${r.program.id}` === s.id)
+  return target && !target.outsideChoice
+}), 'все заявки roadmap — в выбранные страны')
+assert(!applySteps.some((s) => s.id === 'apply-metu-ceng'), 'METU из невыбранной Турции не в плане заявок')
+
 // 13. Целостность датасета: каждая страна и направление из анкеты представлены
 const fieldsCovered = new Set(PROGRAMS.map((p) => p.field))
 const countriesCovered = new Set(PROGRAMS.map((p) => p.country))

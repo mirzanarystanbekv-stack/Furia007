@@ -37,6 +37,11 @@ function ProgramCard({ rec, rank, fav, onFav, compareSelected, onCompare }) {
       </div>
 
       <div className="mt-3 flex flex-wrap gap-2">
+        {rec.outsideChoice && (
+          <span className="rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[11px] font-semibold text-amber-700">
+            вне выбранных стран — альтернатива
+          </span>
+        )}
         {p.verified ? <VerifiedBadge source={p.source} /> : <DemoBadge />}
         <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] text-slate-600">язык: {p.language}</span>
         <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] text-slate-600">{p.admission_track}</span>
