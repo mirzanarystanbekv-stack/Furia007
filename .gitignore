@@ -1,0 +1,20 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+
+# Env / secrets (запрещено хранить ключи в репозитории)
+.env
+.env.*
+
+# OS junk
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+
+# Portable tools (Node)
+tools/node/
