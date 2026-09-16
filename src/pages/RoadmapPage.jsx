@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
 import { useProfile } from '../context/ProfileContext.jsx'
-import { formatMonth, getFearAccent, buildDocsChecklist } from '../engine/roadmap.js'
+import { formatMonth } from '../engine/roadmap.js'
+import { getFearAccent, buildDocsChecklist } from '../data/fearModes.js'
 import { ProgressRing } from '../components/Badges.jsx'
 
 const KIND_STYLES = {

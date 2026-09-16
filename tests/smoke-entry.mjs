@@ -1,7 +1,8 @@
 // Смоук-тест движка: запускается через esbuild bundle:
 // npx esbuild tests/smoke-entry.mjs --bundle --format=esm --outfile=tests/.smoke.mjs && node tests/.smoke.mjs
 import { scoreAllPrograms, diagnose, PROGRAMS } from '../src/engine/scoring.js'
-import { buildRoadmap, getNextAction, getFearAccent, buildDocsChecklist } from '../src/engine/roadmap.js'
+import { buildRoadmap, getNextAction } from '../src/engine/roadmap.js'
+import { getFearAccent, buildDocsChecklist } from '../src/data/fearModes.js'
 import { FIELDS, COUNTRIES } from '../src/data/options.js'
 
 const profile = {

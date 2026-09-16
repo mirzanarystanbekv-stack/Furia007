@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom'
 import { useProfile } from '../context/ProfileContext.jsx'
 import { diagnose } from '../engine/scoring.js'
-import { getFearAccent } from '../engine/roadmap.js'
+import { getFearAccent } from '../data/fearModes.js'
 import { DemoBadge } from '../components/Badges.jsx'
 
 export default function Diagnostics() {

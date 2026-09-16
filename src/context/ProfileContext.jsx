@@ -25,50 +25,36 @@ const EMPTY_PROFILE = {
 
 // localStorage может содержать что угодно (ручные правки, старые версии) —
 // проверяем форму данных, а не только парсимость
+// localStorage может содержать что угодно (ручные правки, старые версии) —
+// проверяем форму данных, а не только парсимость; повреждённая запись —
+// тихий откат к дефолту
+function loadJSON(key) {
+  try {
+    return JSON.parse(localStorage.getItem(key) || 'null')
+  } catch {
+    return null
+  }
+}
+
 function loadProfile() {
-  try {
-    const raw = localStorage.getItem(LS_PROFILE_KEY)
-    const parsed = raw ? JSON.parse(raw) : null
-    if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
-      // сессии до мультевыбора направлений хранили строку — конвертируем
-      const field = Array.isArray(parsed.field)
-        ? parsed.field
-        : parsed.field ? [parsed.field] : []
-      // сессии до ввода прижима могли сохранить экстремальные значения
-      const clamp = (v, max) => (typeof v === 'number' ? Math.min(max, Math.max(0, v)) : v)
-      return { ...parsed, field, gpa: clamp(parsed.gpa, 5), ielts: clamp(parsed.ielts, 9) }
-    }
-  } catch {
-    // повреждённая запись — стартуем с пустого профиля
-  }
-  return { ...EMPTY_PROFILE }
+  const parsed = loadJSON(LS_PROFILE_KEY)
+  if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return { ...EMPTY_PROFILE }
+  // сессии до мультевыбора направлений хранили строку — конвертируем
+  const field = Array.isArray(parsed.field) ? parsed.field : parsed.field ? [parsed.field] : []
+  // сессии до ввода прижима могли сохранить экстремальные значения
+  const clamp = (v, max) => (typeof v === 'number' ? Math.min(max, Math.max(0, v)) : v)
+  return { ...parsed, field, gpa: clamp(parsed.gpa, 5), ielts: clamp(parsed.ielts, 9) }
 }
 
-function loadDoneIds() {
-  try {
-    const raw = localStorage.getItem(LS_DONE_KEY)
-    const parsed = raw ? JSON.parse(raw) : null
-    if (Array.isArray(parsed)) return parsed.filter((x) => typeof x === 'string')
-  } catch {
-    // повреждённая запись — стартуем с пустого списка
-  }
-  return []
-}
-
-function loadFavs() {
-  try {
-    const parsed = JSON.parse(localStorage.getItem(LS_FAV_KEY) || 'null')
-    if (Array.isArray(parsed)) return parsed.filter((x) => typeof x === 'string')
-  } catch {
-    // повреждённая запись — стартуем с пустого списка
-  }
-  return []
+function loadIds(key) {
+  const parsed = loadJSON(key)
+  return Array.isArray(parsed) ? parsed.filter((x) => typeof x === 'string') : []
 }
 
 export function ProfileProvider({ children }) {
   const [profile, setProfile] = useState(loadProfile)
-  const [rawDone, setDoneIds] = useState(loadDoneIds)
-  const [favs, setFavs] = useState(loadFavs)
+  const [rawDone, setDoneIds] = useState(() => loadIds(LS_DONE_KEY))
+  const [favs, setFavs] = useState(() => loadIds(LS_FAV_KEY))
 
   // field — массив (мультивыбор); truthy-массив пустой длины не считается заполненным
   const filled = Boolean(profile.grade && profile.field?.length > 0 && profile.countries.length > 0)

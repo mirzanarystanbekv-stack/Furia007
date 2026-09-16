@@ -16,6 +16,7 @@ src/
   data/
     universities.json   # 40 программ, 11 стран, 7 направлений; verified-поля со ссылками,
                         # demo-поля с бейджами «демонстрационные данные»
+    fearModes.js        # конфигурация режимов «главного страха» (банер, сортировка)
     options.js          # опции анкеты + демо-профиль Алихана
   engine/
     scoring.js          # rule-based скоринг: +30 направление, +25 страна, +20 язык,
@@ -54,7 +55,7 @@ src/
 npm install
 npm run dev      # http://localhost:5173
 npm run build    # production-сборка в dist/
-npm test         # 34 смоук-теста: скоринг, реактивность, roadmap, целостность датасета
+npm test         # 53 смоук-теста: скоринг, реактивность, roadmap, целостность датасета
 ```
 
 Сборка настроена как single-file (`vite-plugin-singlefile`): весь бандл инлайнится в один `dist/index.html` — можно открыть даже с диска, роутер HashRouter работает на любом статическом хостинге.
@@ -72,4 +73,5 @@ npm test         # 34 смоук-теста: скоринг, реактивно�
 - `Choice` / `Chip` — интерактивные селекторы анкеты
 - `VerifiedBadge` / `DemoBadge` — обязательные флаги источников из спеки
 - `ProgressRing` — кольцо прогресса выполнения плана
-- `buildRoadmap` / `getNextAction` / `getFearAccent` — генерация плана и «главного страха»
+- `buildRoadmap` / `getNextAction` — генерация плана и next action
+- `getFearAccent` / `buildDocsChecklist` — режимы «главного страха» (data/fearModes.js)
