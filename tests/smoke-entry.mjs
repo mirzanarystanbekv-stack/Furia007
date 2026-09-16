@@ -66,10 +66,10 @@ assert(Array.isArray(stepsEmpty) && stepsEmpty.length >= 1, `пустой про
 const dEmpty = diagnose(empty)
 assert(Array.isArray(dEmpty.strengths) && Array.isArray(dEmpty.risks), 'пустой профиль: диагностика не падает, GPA трактуется как 0')
 
-// 7. ГРАНИЦЫ: мусор вместо GPA и IELTS
+// 7. ГРАНИЦЫ: мусор вместо GPA и IELTS — пустой GPA это «нет данных», а не «низкий балл»
 const dGarbage = diagnose({ ...profile, gpa: '', ielts: '' })
-assert(dGarbage.highGpaGrantFlag === false && dGarbage.risks.some((r) => r.title.includes('успеваемость')),
-  "GPA '' трактуется как 0, а не как высокое значение")
+assert(dGarbage.highGpaGrantFlag === false && dGarbage.risks.some((r) => r.title.includes('Укажите свой балл')),
+  "GPA '' трактуется как отсутствие данных с честной подсказкой, не как «низкая успеваемость»")
 
 // 8. Языковой разрыв: IELTS 0 → шаг Hazırlık появляется в roadmap (требование спеки)
 const langGap = { ...profile, ielts: 0, countries: ['Турция'] }
