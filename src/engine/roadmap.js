@@ -49,14 +49,29 @@ export function buildRoadmap(profile, scoredPrograms) {
       source: 'даты по прошлым годам',
     })
   }
-  if (hasTurkey && (profile.ielts ?? 0) < 6.0) {
+  // IELTS нужен, если в выбранных странах есть программы с англ. порогом, которые
+  // пользователь ещё не закрывает сертификатом (не только Турция — Германия и
+  // Корея тоже требуют 6.0+)
+  const chosenPrograms = profile.countries?.length
+    ? scoredPrograms.filter((r) => profile.countries.includes(r.program.country))
+    : scoredPrograms
+  const ieltsNeeded = chosenPrograms.some(
+    (r) => typeof r.program.ielts_required === 'number' && (Number(profile.ielts) || 0) < r.program.ielts_required,
+  )
+  if (ieltsNeeded) {
+    const maxNeed = Math.max(
+      ...chosenPrograms
+        .filter((r) => typeof r.program.ielts_required === 'number')
+        .map((r) => r.program.ielts_required),
+    )
     steps.push({
       id: 'ielts-prep',
-      title: 'IELTS до 6.0+',
-      desc: 'Расписание подготовки и запись на ближайшую сессию. Некоторые программы (например, Boğaziçi) требуют 6.0.',
+      title: `IELTS до ${maxNeed}+`,
+      titleNote: maxNeed > 6.0 ? 'самый высокий порог среди ваших стран' : null,
+      desc: 'Расписание подготовки и запись на ближайшую сессию — без сертификата часть программ закроется или добавит подготовительный год.',
       month: ym(baseY, Math.max(now.getMonth() + 1, 9)),
       kind: 'exam',
-      source: 'порог Boğaziçi — демонстрационные данные',
+      source: 'пороги программ — проверяйте на сайтах вузов',
     })
   }
   if (hasKz) {

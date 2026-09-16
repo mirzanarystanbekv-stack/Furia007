@@ -90,6 +90,15 @@ export function ProfileProvider({ children }) {
       return { ...p, countries: has ? p.countries.filter((x) => x !== c) : [...p.countries, c] }
     })
 
+  // То же для мультивыбора направлений: без функциональной формы два быстрых
+  // клика в одном тике теряют первый выбор (перезапись по устаревшему профилю)
+  const toggleField = (v) =>
+    setProfile((p) => {
+      const has = p.field.includes(v)
+      const next = has ? p.field.filter((x) => x !== v) : [...p.field, v]
+      return { ...p, field: next.slice(0, 3) }
+    })
+
   const loadDemo = () => setProfile({ ...DEMO_PROFILE })
   const resetProfile = () => {
     setProfile({ ...EMPTY_PROFILE })
@@ -127,6 +136,7 @@ export function ProfileProvider({ children }) {
       profile,
       updateProfile,
       toggleCountry,
+      toggleField,
       loadDemo,
       resetProfile,
       doneIds,

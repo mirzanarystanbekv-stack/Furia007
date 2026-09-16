@@ -2,8 +2,6 @@ import { Link } from 'react-router-dom'
 import { useProfile } from '../context/ProfileContext.jsx'
 import { GRADES, FIELDS, COUNTRIES, TARGET_LANGUAGES, BUDGETS, PRIORITIES, FEARS } from '../data/options.js'
 
-const toggleIn = (arr, v) => (arr.includes(v) ? arr.filter((x) => x !== v) : [...arr, v])
-
 function Choice({ options, value, onChange, columns = 1 }) {
   const cols = columns >= 3 ? 'sm:grid-cols-3' : columns === 2 ? 'sm:grid-cols-2' : ''
   return (
@@ -76,7 +74,7 @@ function parseBounded(raw, min, max) {
 }
 
 export default function ProfilePage() {
-  const { profile, updateProfile, toggleCountry, loadDemo, resetProfile, hasProfile } = useProfile()
+  const { profile, updateProfile, toggleCountry, toggleField, loadDemo, resetProfile, hasProfile } = useProfile()
   const filled = hasProfile
 
   return (
@@ -109,7 +107,7 @@ export default function ProfilePage() {
           <MultiChip
             options={FIELDS}
             selected={profile.field}
-            onToggle={(v) => updateProfile({ field: toggleIn(profile.field, v).slice(0, 3) })}
+            onToggle={toggleField}
           />
         </section>
 

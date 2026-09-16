@@ -84,6 +84,7 @@ export default function RoadmapPage() {
                   <h3 className={`font-semibold text-sm sm:text-base ${done ? 'line-through text-slate-400' : 'text-slate-900'}`}>
                     {step.title}
                   </h3>
+                  {step.titleNote && <span className="text-xs text-amber-600">{step.titleNote}</span>}
                 </div>
                 <p className="text-sm text-slate-600 mt-1">{step.desc}</p>
                 <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px]">
