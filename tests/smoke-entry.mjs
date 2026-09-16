@@ -1,7 +1,7 @@
 // Смоук-тест движка: запускается через esbuild bundle:
 // npx esbuild tests/smoke-entry.mjs --bundle --format=esm --outfile=tests/.smoke.mjs && node tests/.smoke.mjs
 import { scoreAllPrograms, diagnose } from '../src/engine/scoring.js'
-import { buildRoadmap, getNextAction } from '../src/engine/roadmap.js'
+import { buildRoadmap, getNextAction, getFearAccent, buildDocsChecklist } from '../src/engine/roadmap.js'
 
 const profile = {
   grade: 11, field: 'it', countries: ['Турция', 'Казахстан'], gpa: 4.85,
@@ -80,6 +80,35 @@ assert(stepsGap.some((s) => s.id === 'prep-year'), 'IELTS ниже порога 
 // 9. getNextAction игнорирует протухшие id
 const ghostDone = [steps[0].id, 'ghost-1', 'ghost-2']
 assert(getNextAction(steps, ghostDone).id === steps[1].id, 'next action пропускает и валидные, и несуществующие done-id')
+
+// 10. Уровень целевого языка (CEFR) участвует в логике: B2 без сертификата закрывает
+//     порог ≤6.0, A2 — нет; скор, причины и Hazırlık реагируют
+const bo = (list) => list.find((r) => r.program.id === 'bogazici-ceng')
+const noCertA2 = { ...profile, ielts: 0, target_lang_level: 'A2' }
+const noCertB2 = { ...profile, ielts: 0, target_lang_level: 'B2' }
+const boA2 = bo(scoreAllPrograms(noCertA2))
+const boB2 = bo(scoreAllPrograms(noCertB2))
+assert(Boolean(boA2 && boB2), 'Boğaziçi присутствует в обоих языковых профилях')
+assert(boB2.score > boA2.score, `уровень B2 поднимает скор Boğaziçi (${boA2.score} → ${boB2.score})`)
+assert(boB2.reasons.some((x) => x.reason.includes('самооценке')), 'причина B2 объясняет закрытие порога самооценкой')
+assert(!buildRoadmap(noCertB2, scoreAllPrograms(noCertB2)).some((s) => s.id === 'prep-year'),
+  'B2 без сертификата: Hazırlık не появляется')
+assert(buildRoadmap(noCertA2, scoreAllPrograms(noCertA2)).some((s) => s.id === 'prep-year'),
+  'A2 без сертификата: Hazırlık появляется')
+
+// 11. Режимы «главного страха» переупорядочивают roadmap
+const stepsFear = buildRoadmap(profile, scored)
+const firstKind = (order) => [...stepsFear].sort(order)[0].kind
+const dl = getFearAccent('deadlines')
+const ch = getFearAccent('choice')
+const dc = getFearAccent('documents')
+assert(typeof dl.order === 'function' && typeof ch.order === 'function' && typeof dc.order === 'function',
+  'все три страха дают режим сортировки')
+assert(firstKind(dl.order) === 'deadline', 'режим дедлайнов: заявка поднята первой')
+assert(firstKind(ch.order) === 'exam', 'режим выбора: экзамен первый')
+assert(firstKind(dc.order) === 'docs', 'режим документов: документы первые')
+assert(getFearAccent(null).order === null, 'без страха — нейтральный порядок (даты)')
+assert(buildDocsChecklist(scored).length === 8, `чек-лист документов: 5 базовых + топ-3 программы (${buildDocsChecklist(scored).length})`)
 
 console.log('')
 console.log('Итог: смоук-тест завершён, exit code =', process.exitCode ?? 0)

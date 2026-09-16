@@ -21,12 +21,23 @@ function monthDiff(from, to) {
   return (to.getFullYear() - from.getFullYear()) * 12 + (to.getMonth() - from.getMonth())
 }
 
-// Языковое соответствие программе
+const CEFR_ORDER = ['A1', 'A2', 'B1', 'B2', 'C1']
+
+// Самооценка уровня целевого языка из анкеты (поле 5): A1=1 … C1=5, не выбран = 0.
+// Уверенным считаем B1 и выше: тогда самооценка может закрыть языковой порог ≤6.0,
+// ниже — ненадёжна и на логику не влияет.
+export function selfAssessmentLevel(profile) {
+  const i = CEFR_ORDER.indexOf(profile?.target_lang_level)
+  return i === -1 ? 0 : i + 1
+}
+
+// Языковое соответствие программе: сертификат — прямое доказательство;
+// если сертификата нет, уверенная самооценка B1+ закрывает пороги до 6.0 включительно
 export function languageMatches(program, profile) {
-  const hasEnglish = (program.language || '').includes('Английск')
   const needIelts = typeof program.ielts_required === 'number'
   if (!needIelts) return true
-  return (profile.ielts ?? 0) >= program.ielts_required
+  if ((Number(profile?.ielts) || 0) >= program.ielts_required) return true
+  return selfAssessmentLevel(profile) >= 3 && program.ielts_required <= 6.0
 }
 
 export function needsPrepYear(program, profile) {
@@ -59,12 +70,25 @@ function scoreProgram(program, profile) {
     reasons.push({ reason: `${program.country} — в списке ваших целевых стран`, points: 25 })
   }
 
-  // +20 язык (или шаг Hazırlık, если не соответствует)
+  // +20 язык (или шаг Hazırlık, если не соответствует).
+  // Причина различает, чем закрыт порог: сертификатом или самооценкой уровня из анкеты
+  const needIelts = typeof program.ielts_required === 'number'
+  const certOk = (Number(profile?.ielts) || 0) >= (program.ielts_required ?? 0)
+  const selfLevel = selfAssessmentLevel(profile)
   if (languageMatches(program, profile)) {
     score += 20
-    reasons.push({ reason: 'Языковой порог программы выполняется', points: 20 })
+    if (needIelts && certOk) {
+      reasons.push({ reason: `Сертификат IELTS ${profile.ielts} закрывает порог программы (${program.ielts_required})`, points: 20 })
+    } else if (needIelts) {
+      reasons.push({ reason: `Уровень ${profile.target_lang_level} по самооценке засчитывает порог программы (сертификат всё равно спросят при подаче)`, points: 20 })
+    } else {
+      reasons.push({ reason: 'Языковой порог программы выполняется', points: 20 })
+    }
   } else {
-    reasons.push({ reason: 'Языковой порог не выполнен — потребуется подготовительный год (Hazırlık)', points: 0 })
+    reasons.push({
+      reason: `Языковой порог не выполнен${selfLevel > 0 ? `: самооценка ${profile.target_lang_level} ниже требуемой, сертификата нет` : ''} — потребуется подготовительный год (Hazırlık)`,
+      points: 0,
+    })
   }
 
   // +15 бюджет

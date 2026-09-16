@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom'
 import { useProfile } from '../context/ProfileContext.jsx'
-import { formatMonth, getFearAccent } from '../engine/roadmap.js'
+import { formatMonth, getFearAccent, buildDocsChecklist } from '../engine/roadmap.js'
 import { ProgressRing } from '../components/Badges.jsx'
 
 const KIND_STYLES = {
@@ -13,7 +13,7 @@ const KIND_STYLES = {
 }
 
 export default function RoadmapPage() {
-  const { profile, roadmap, doneIds, toggleDone, hasProfile, progress } = useProfile()
+  const { profile, scored, roadmap, doneIds, toggleDone, hasProfile, progress } = useProfile()
   const fear = getFearAccent(profile.fear)
 
   if (!hasProfile || roadmap.length === 0) {
@@ -24,6 +24,10 @@ export default function RoadmapPage() {
       </div>
     )
   }
+
+  // Режим «главного страха» меняет порядок шагов и подсветку
+  const sorted = fear.order ? [...roadmap].sort(fear.order) : roadmap
+  const docsItems = fear.id === 'documents' ? buildDocsChecklist(scored) : null
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-10">
@@ -37,17 +41,23 @@ export default function RoadmapPage() {
 
       {fear.label && (
         <div className="mt-4 card p-4 border-l-4 border-l-primary-500 bg-primary-50/50 text-sm text-slate-700">
-          💡 Режим акцента: <b>{fear.label}</b> — {fear.text}
+          💡 <b>{fear.label}</b> — {fear.text}
         </div>
       )}
 
       {/* Таймлайн */}
-      <ol className="mt-6 space-y-3 pb-16">
-        {roadmap.map((step) => {
+      <ol className="mt-6 space-y-3 pb-6">
+        {sorted.map((step) => {
           const done = doneIds.includes(step.id)
           const st = KIND_STYLES[step.kind] || { icon: '•', label: '' }
+          const highlighted = fear.id === 'deadlines' && step.kind === 'deadline' && !done
           return (
-            <li key={step.id} className="card p-4 sm:p-5 flex gap-4 items-start">
+            <li
+              key={step.id}
+              className={`card p-4 sm:p-5 flex gap-4 items-start transition-shadow ${
+                highlighted ? 'ring-2 ring-amber-300 border-amber-200' : ''
+              }`}
+            >
               <button
                 type="button"
                 onClick={() => toggleDone(step.id)}
@@ -87,6 +97,22 @@ export default function RoadmapPage() {
           )
         })}
       </ol>
+
+      {/* Чек-лист документов — только в режиме «документы» */}
+      {docsItems && (
+        <section className="card p-5 mb-6 border-l-4 border-l-primary-500">
+          <h2 className="font-bold text-slate-900">📄 Чек-лист документов под ваши программы</h2>
+          <ul className="mt-3 space-y-2">
+            {docsItems.map((item) => (
+              <li key={item.id} className="flex items-start gap-2 text-sm text-slate-700">
+                <span className="mt-0.5 h-4 w-4 rounded border border-slate-300 bg-white shrink-0" aria-hidden="true"></span>
+                {item.text}
+              </li>
+            ))}
+          </ul>
+          <p className="mt-3 text-xs text-slate-400 italic">Отметьте пункты в своём трекере — требования уточняйте на страницах программ.</p>
+        </section>
+      )}
 
       <div className="flex flex-col sm:flex-row justify-between gap-3 pb-10">
         <Link to="/compare" className="btn-ghost text-sm">← К сравнению</Link>
