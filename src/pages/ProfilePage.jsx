@@ -44,6 +44,16 @@ function Chip({ option, active, onClick }) {
   )
 }
 
+// Числа с запятой («4,85» — привычный русский ввод) и прижим к границам.
+// type=number отвергает запятую ещё на уровне DOM, поэтому поля — текстовые
+function parseBounded(raw, min, max) {
+  const s = String(raw).trim().replace(',', '.')
+  if (s === '') return ''
+  const n = Number(s)
+  if (Number.isNaN(n)) return ''
+  return Math.min(max, Math.max(min, n))
+}
+
 export default function ProfilePage() {
   const { profile, updateProfile, toggleCountry, loadDemo, resetProfile, hasProfile } = useProfile()
   const filled = hasProfile
@@ -94,11 +104,11 @@ export default function ProfilePage() {
           <label className="block">
             <span className="text-xs text-slate-500">GPA (0–5)</span>
             <input
-              type="number" min="0" max="5" step="0.01"
+              type="text" inputMode="decimal"
               className="input mt-1"
-              placeholder="например, 4.85"
+              placeholder="например, 4,85"
               value={profile.gpa}
-              onChange={(e) => updateProfile({ gpa: e.target.value === '' ? '' : Number(e.target.value) })}
+              onChange={(e) => updateProfile({ gpa: parseBounded(e.target.value, 0, 5) })}
             />
           </label>
           <label className="mt-4 flex items-center gap-3 cursor-pointer select-none">
@@ -127,11 +137,11 @@ export default function ProfilePage() {
           <label className="block">
             <span className="text-xs text-slate-500">IELTS (0–9, если сдавали)</span>
             <input
-              type="number" min="0" max="9" step="0.5"
+              type="text" inputMode="decimal"
               className="input mt-1"
-              placeholder="например, 6.0"
+              placeholder="например, 6,0 (если сдавали)"
               value={profile.ielts}
-              onChange={(e) => updateProfile({ ielts: e.target.value === '' ? '' : Number(e.target.value) })}
+              onChange={(e) => updateProfile({ ielts: parseBounded(e.target.value, 0, 9) })}
             />
           </label>
           <div className="mt-4">

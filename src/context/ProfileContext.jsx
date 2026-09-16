@@ -28,7 +28,11 @@ function loadProfile() {
   try {
     const raw = localStorage.getItem(LS_PROFILE_KEY)
     const parsed = raw ? JSON.parse(raw) : null
-    if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) return parsed
+    if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+      // сессии до ввода прижима могли сохранить экстремальные значения
+      const clamp = (v, max) => (typeof v === 'number' ? Math.min(max, Math.max(0, v)) : v)
+      return { ...parsed, gpa: clamp(parsed.gpa, 5), ielts: clamp(parsed.ielts, 9) }
+    }
   } catch {
     // повреждённая запись — стартуем с пустого профиля
   }

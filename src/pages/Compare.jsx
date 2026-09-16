@@ -30,7 +30,6 @@ export default function Compare() {
   }
 
   const top = scored.slice(0, 3)
-  const cols = selected.map((i) => top[i]).filter(Boolean)
 
   const toggle = (i) => {
     setSelected((sel) => {
@@ -45,6 +44,24 @@ export default function Compare() {
       <div className="max-w-3xl mx-auto px-4 py-16 text-center">
         <p className="text-slate-600">Для сравнения нужно минимум 2 подходящие программы — расширьте вводные в анкете.</p>
         <Link to="/profile" className="btn-primary mt-4">Изменить анкету</Link>
+      </div>
+    )
+  }
+
+  const cols = selected.map((i) => top[i]).filter(Boolean)
+
+  // Пользователь может снять все колонки — подсказка вместо падения ( TypeError cols[0].program )
+  if (cols.length === 0) {
+    return (
+      <div className="max-w-4xl mx-auto px-4 py-10">
+        <h1 className="text-2xl sm:text-3xl font-bold text-slate-900">Сравнение вариантов</h1>
+        <div className="mt-6 card p-8 text-center">
+          <p className="text-slate-600">Выберите хотя бы одну программу кнопками выше — колонки появятся здесь.</p>
+        </div>
+        <div className="mt-8 flex justify-between pb-10">
+          <Link to="/recommendations" className="btn-ghost text-sm">← К рекомендациям</Link>
+          <Link to="/roadmap" className="btn-primary">К roadmap →</Link>
+        </div>
       </div>
     )
   }
