@@ -53,7 +53,10 @@ src/
 npm install
 npm run dev      # http://localhost:5173
 npm run build    # production-сборка в dist/
+npm test         # смоук-тест движка: скоринг, реактивность, roadmap, next action
 ```
+
+Сборка настроена как single-file (`vite-plugin-singlefile`): весь бандл инлайнится в один `dist/index.html` — можно открыть даже с диска, роутер HashRouter работает на любом статическом хостинге.
 
 ## Техническая справка
 
