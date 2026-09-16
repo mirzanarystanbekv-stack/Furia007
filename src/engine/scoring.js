@@ -151,6 +151,7 @@ export function diagnose(profile) {
   const strengths = []
   const risks = []
   const gpa = Number(profile.gpa) || 0 // '' и мусор из формы → 0
+  const fields = Array.isArray(profile.field) ? profile.field : profile.field ? [profile.field] : []
 
   if (gpa === 0) {
     // GPA не указан — это не «низкая успеваемость», а отсутствие данных
@@ -185,6 +186,10 @@ export function diagnose(profile) {
     strengths.push({ title: 'Гибкая стратегия', text: 'Несколько целевых стран — параллельные треки снижают риск «нигде не пройти».' })
   }
 
+  if (fields.length > 1) {
+    strengths.push({ title: 'Сравниваете интересы', text: `${fields.length} направления в анкете: рекомендации покажут лучшие варианты по каждому — так выбор осознаннее.` })
+  }
+
   if (profile.grade === 9) {
     risks.push({ title: 'Много времени — используйте его', text: 'Вы в 9 классе: самое время качать экзамены и портфолио без спешки.' })
   }
@@ -195,10 +200,16 @@ export function diagnose(profile) {
   // Модельное предположение из спеки — обязательно с бейджем «демо-оценка» в UI
   const highGpaGrantFlag = gpa > 4.5
 
+  const first = fields[0]
   let goal = 'поступление по выбранному направлению'
-  if (profile.field === 'it') goal = 'Computer Engineering / IT-программа'
-  if (profile.field === 'economics') goal = 'Экономика / Бизнес-программа'
-  if (profile.field === 'engineering') goal = 'Инженерная программа'
+  if (first === 'it') goal = 'Computer Engineering / IT-программа'
+  if (first === 'economics') goal = 'Экономика / Бизнес-программа'
+  if (first === 'engineering') goal = 'Инженерная программа'
+  if (first === 'medicine') goal = 'Медицинская программа (MD)'
+  if (first === 'law') goal = 'Юридическая программа'
+  if (first === 'science') goal = 'Программа по естественным наукам'
+  if (first === 'design') goal = 'Программа по дизайну / архитектуре'
+  if (fields.length > 1) goal += ` (+${fields.length - 1} доп. направление)`
 
   return { strengths, risks, goal, highGpaGrantFlag }
 }

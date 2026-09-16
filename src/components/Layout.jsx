@@ -42,9 +42,12 @@ export default function Layout() {
 
           <div className="flex items-center gap-2">
             {hasProfile && (
-              <Link to="/next" className="btn-primary !px-4 !py-2 text-xs sm:text-sm">
-                Мой шаг →
-              </Link>
+              <>
+                <Link to="/recommendations" className="text-xl text-slate-400 hover:text-amber-500 transition" title="Избранное — звёздочки на рекомендациях">★</Link>
+                <Link to="/next" className="btn-primary !px-4 !py-2 text-xs sm:text-sm">
+                  Мой шаг →
+                </Link>
+              </>
             )}
           </div>
         </div>

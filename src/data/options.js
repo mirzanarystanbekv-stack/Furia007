@@ -9,11 +9,25 @@ export const FIELDS = [
   { value: 'it', label: 'IT / Программирование' },
   { value: 'engineering', label: 'Инженерия' },
   { value: 'economics', label: 'Экономика / Бизнес' },
+  { value: 'medicine', label: 'Медицина' },
+  { value: 'law', label: 'Право / Юриспруденция' },
+  { value: 'science', label: 'Наука (физика, мат, химия)' },
+  { value: 'design', label: 'Дизайн / Архитектура' },
 ]
 
+// Страны, по которым в базе есть программы (universities.json)
 export const COUNTRIES = [
   { value: 'Турция', label: 'Турция' },
   { value: 'Казахстан', label: 'Казахстан' },
+  { value: 'Германия', label: 'Германия' },
+  { value: 'Венгрия', label: 'Венгрия' },
+  { value: 'Польша', label: 'Польша' },
+  { value: 'Корея', label: 'Корея' },
+  { value: 'Китай', label: 'Китай' },
+  { value: 'Россия', label: 'Россия' },
+  { value: 'Малайзия', label: 'Малайзия' },
+  { value: 'ОАЭ', label: 'ОАЭ' },
+  { value: 'США', label: 'США' },
 ]
 
 export const TARGET_LANGUAGES = [
@@ -44,7 +58,7 @@ export const FEARS = [
 // Демо-профиль Алихана (для быстрой записи видео, из спецификации)
 export const DEMO_PROFILE = {
   grade: 11,
-  field: 'it',
+  field: ['it'],
   countries: ['Турция', 'Казахстан'],
   gpa: 4.85,
   achievements: true,

@@ -2,6 +2,8 @@ import { Link } from 'react-router-dom'
 import { useProfile } from '../context/ProfileContext.jsx'
 import { GRADES, FIELDS, COUNTRIES, TARGET_LANGUAGES, BUDGETS, PRIORITIES, FEARS } from '../data/options.js'
 
+const toggleIn = (arr, v) => (arr.includes(v) ? arr.filter((x) => x !== v) : [...arr, v])
+
 function Choice({ options, value, onChange, columns = 1 }) {
   const cols = columns >= 3 ? 'sm:grid-cols-3' : columns === 2 ? 'sm:grid-cols-2' : ''
   return (
@@ -44,6 +46,25 @@ function Chip({ option, active, onClick }) {
   )
 }
 
+// Мультевыбор чипами — для направлений (1–3) и стран
+function MultiChip({ options, selected, onToggle, max }) {
+  return (
+    <>
+      <div className="flex flex-wrap gap-2">
+        {options.map((o) => (
+          <Chip
+            key={o.value}
+            option={o.label}
+            active={selected.includes(o.value)}
+            onClick={() => onToggle(o.value)}
+          />
+        ))}
+      </div>
+      {max && <p className="mt-2 text-xs text-slate-400">Можно выбрать до {max} — скоринг считает каждый вариант отдельным треком</p>}
+    </>
+  )
+}
+
 // Числа с запятой («4,85» — привычный русский ввод) и прижим к границам.
 // type=number отвергает запятую ещё на уровне DOM, поэтому поля — текстовые
 function parseBounded(raw, min, max) {
@@ -82,10 +103,14 @@ export default function ProfilePage() {
           <Choice options={GRADES} value={profile.grade} onChange={(v) => updateProfile({ grade: v })} columns={3} />
         </section>
 
-        {/* 2. Направление */}
+        {/* 2. Направление — мультевыбор: сравниваем до 3 интересов параллельно */}
         <section className="card p-5">
-          <h2 className="label">2. Направление</h2>
-          <Choice options={FIELDS} value={profile.field} onChange={(v) => updateProfile({ field: v })} />
+          <h2 className="label">2. Направление (можно до 3 — сравните интересы параллельно)</h2>
+          <MultiChip
+            options={FIELDS}
+            selected={profile.field}
+            onToggle={(v) => updateProfile({ field: toggleIn(profile.field, v).slice(0, 3) })}
+          />
         </section>
 
         {/* 3. Целевые страны */}
@@ -96,6 +121,7 @@ export default function ProfilePage() {
               <Chip key={c.value} option={c.label} active={profile.countries.includes(c.value)} onClick={() => toggleCountry(c.value)} />
             ))}
           </div>
+          <p className="mt-2 text-xs text-slate-400">Каждая страна — отдельный план поступления: движок найдёт варианты по всем выбранным</p>
         </section>
 
         {/* 4. Академический балл и достижения */}

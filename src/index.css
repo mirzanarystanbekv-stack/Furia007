@@ -34,3 +34,16 @@
     @apply block text-sm font-semibold text-slate-700 mb-1.5;
   }
 }
+
+/* Печать roadmap: чистый лист с планом, без навигации и кнопок */
+@media print {
+  header,
+  footer,
+  .print\:hidden {
+    display: none !important;
+  }
+  .card {
+    box-shadow: none !important;
+    break-inside: avoid;
+  }
+}

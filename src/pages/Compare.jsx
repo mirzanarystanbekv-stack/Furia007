@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { useMemo, useState } from 'react'
+import { Link, useSearchParams } from 'react-router-dom'
 import { useProfile } from '../context/ProfileContext.jsx'
 import { VerifiedBadge, DemoBadge } from '../components/Badges.jsx'
 
@@ -18,7 +18,19 @@ const ROWS = [
 
 export default function Compare() {
   const { scored, hasProfile } = useProfile()
-  const [selected, setSelected] = useState([0, 1])
+  const [searchParams] = useSearchParams()
+
+  // Внешний выбор из рекомендаций (?ids=a,b) задаёт начальные колонки;
+  // дальше пользователь может поменять их селектами из ВСЕХ подходящих программ
+  const initial = useMemo(() => {
+    const raw = searchParams.get('ids')
+    if (!raw) return [0, 1]
+    const pool = scored
+    const idx = raw.split(',').map((id) => pool.findIndex((r) => r.program.id === id)).filter((i) => i >= 0)
+    return idx.length ? idx.slice(0, 2) : [0, 1]
+  }, [searchParams, scored])
+
+  const [sel, setSel] = useState(initial)
 
   if (!hasProfile) {
     return (
@@ -29,17 +41,7 @@ export default function Compare() {
     )
   }
 
-  const top = scored.slice(0, 3)
-
-  const toggle = (i) => {
-    setSelected((sel) => {
-      if (sel.includes(i)) return sel.filter((x) => x !== i)
-      if (sel.length >= 2) return [sel[1], i] // всегда максимум 2 активных колонки
-      return [...sel, i]
-    })
-  }
-
-  if (top.length < 2) {
+  if (scored.length < 2) {
     return (
       <div className="max-w-3xl mx-auto px-4 py-16 text-center">
         <p className="text-slate-600">Для сравнения нужно минимум 2 подходящие программы — расширьте вводные в анкете.</p>
@@ -48,28 +50,33 @@ export default function Compare() {
     )
   }
 
-  const cols = selected.map((i) => top[i]).filter(Boolean)
+  const cols = sel.map((i) => scored[i]).filter(Boolean)
+
+  const setCol = (colIdx, poolIdx) =>
+    setSel((prev) => prev.map((v, i) => (i === colIdx ? poolIdx : v)))
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-10">
+    <div className="max-w-5xl mx-auto px-4 py-10">
       <h1 className="text-2xl sm:text-3xl font-bold text-slate-900">Сравнение вариантов</h1>
-      <p className="text-sm text-slate-500 mt-1">Выберите две программы для сравнения — колонки переключаются кликом</p>
+      <p className="text-sm text-slate-500 mt-1">Сравните любые программы из ваших рекомендаций — выбор в двух селектах</p>
 
-      {/* Переключатель колонок — всегда на экране, чтобы выбор и снятие выбора не заводили в тупик */}
-      <div className="mt-4 flex flex-wrap gap-2">
-        {top.map((r, i) => (
-          <button
-            key={r.program.id}
-            type="button"
-            onClick={() => toggle(i)}
-            className={`rounded-xl border px-3 py-2 text-xs font-medium transition ${
-              selected.includes(i)
-                ? 'border-primary-500 bg-primary-50 text-primary-800'
-                : 'border-slate-200 bg-white text-slate-500 hover:border-primary-300'
-            }`}
-          >
-            {selected.includes(i) ? '✓ ' : ''}{r.program.university.split('(')[0].trim()}
-          </button>
+      {/* Выбор колонок — всегда на экране, тупика без таблицы нет */}
+      <div className="mt-5 card p-4 grid gap-3 sm:grid-cols-2">
+        {[0, 1].map((colIdx) => (
+          <label key={colIdx} className="block">
+            <span className="text-xs font-semibold text-slate-500">Колонка {colIdx + 1}</span>
+            <select
+              className="input mt-1"
+              value={sel[colIdx] ?? 0}
+              onChange={(e) => setCol(colIdx, Number(e.target.value))}
+            >
+              {scored.map((r, i) => (
+                <option key={r.program.id} value={i}>
+                  {r.program.university.split('(')[0].trim()} — {r.program.program} ({Math.round(r.score)})
+                </option>
+              ))}
+            </select>
+          </label>
         ))}
       </div>
 
@@ -89,6 +96,7 @@ export default function Compare() {
                     <th key={rec.program.id} className="text-left p-3">
                       <div className="font-bold text-slate-900">{rec.program.university}</div>
                       <div className="text-xs text-slate-500 font-normal">{rec.program.program}</div>
+                      <div className="text-xs text-primary-700 font-bold mt-0.5">{Math.round(rec.score)} баллов</div>
                     </th>
                   ))}
                 </tr>

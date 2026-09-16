@@ -1,10 +1,11 @@
 // Смоук-тест движка: запускается через esbuild bundle:
 // npx esbuild tests/smoke-entry.mjs --bundle --format=esm --outfile=tests/.smoke.mjs && node tests/.smoke.mjs
-import { scoreAllPrograms, diagnose } from '../src/engine/scoring.js'
+import { scoreAllPrograms, diagnose, PROGRAMS } from '../src/engine/scoring.js'
 import { buildRoadmap, getNextAction, getFearAccent, buildDocsChecklist } from '../src/engine/roadmap.js'
+import { FIELDS, COUNTRIES } from '../src/data/options.js'
 
 const profile = {
-  grade: 11, field: 'it', countries: ['Турция', 'Казахстан'], gpa: 4.85,
+  grade: 11, field: ['it'], countries: ['Турция', 'Казахстан'], gpa: 4.85,
   achievements: true, achievements_text: 'Дарын 2-е место', ielts: 6.0,
   target_lang_level: 'A2', budget: 'mid', priority: 'grant', fear: 'deadlines',
 }
@@ -109,6 +110,24 @@ assert(firstKind(ch.order) === 'exam', 'режим выбора: экзамен 
 assert(firstKind(dc.order) === 'docs', 'режим документов: документы первые')
 assert(getFearAccent(null).order === null, 'без страха — нейтральный порядок (даты)')
 assert(buildDocsChecklist(scored).length === 8, `чек-лист документов: 5 базовых + топ-3 программы (${buildDocsChecklist(scored).length})`)
+
+// 12. Мультивыбор направлений: программы обоих интересов получают баллы
+const dual = { ...profile, field: ['it', 'economics'] }
+const dualScored = scoreAllPrograms(dual)
+const metuD = dualScored.find((r) => r.program.id === 'metu-ceng')
+const hseD = dualScored.find((r) => r.program.id === 'hse-econ')
+assert(Boolean(metuD && hseD && metuD.score > 0 && hseD.score > 0),
+  'мультивыбор [it, economics]: программы обоих направлений получают баллы')
+
+// 13. Целостность датасета: каждая страна и направление из анкеты представлены
+const fieldsCovered = new Set(PROGRAMS.map((p) => p.field))
+const countriesCovered = new Set(PROGRAMS.map((p) => p.country))
+assert(FIELDS.every((f) => fieldsCovered.has(f.value)), 'каждое направление из анкеты есть в базе программ')
+assert(COUNTRIES.every((c) => countriesCovered.has(c.value)), 'каждая страна из анкеты есть в базе программ')
+const ids = PROGRAMS.map((p) => p.id)
+assert(new Set(ids).size === ids.length, 'id программ уникальны')
+assert(PROGRAMS.every((p) => typeof p.tuition_usd === 'number' && typeof p.deadline_month === 'number'),
+  'у всех программ есть tuition_usd и deadline_month')
 
 console.log('')
 console.log('Итог: смоук-тест завершён, exit code =', process.exitCode ?? 0)
