@@ -4,6 +4,9 @@ node_modules/
 # Build output
 dist/
 
+# Smoke test bundle artifact
+tests/.smoke.mjs
+
 # Env / secrets (запрещено хранить ключи в репозитории)
 .env
 .env.*

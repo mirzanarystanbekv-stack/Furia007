@@ -81,9 +81,16 @@ function scoreProgram(program, profile) {
     reasons.push({ reason: `Бюджет не укладывается: ${budget.note}`, points: 0 })
   }
 
-  // +10 дедлайн ещё не прошёл (иначе программа вообще не показывается)
+  // +10 дедлайн ещё не прошёл (иначе программа вообще не показывается).
+  // Окна приёма повторяются ежегодно ("по прошлым годам"), поэтому если окно этого
+  // года уже прошло — берём ближайший будущий цикл. Программа скрывается только
+  // если заявка реально больше не принимается (в демо-базе таких нет).
   const now = getNow()
-  const monthsLeft = monthDiff(now, new Date(now.getFullYear(), program.deadline_month, 1))
+  let deadline = new Date(now.getFullYear(), program.deadline_month, 1)
+  if (monthDiff(now, deadline) <= 0) {
+    deadline = new Date(now.getFullYear() + 1, program.deadline_month, 1)
+  }
+  const monthsLeft = monthDiff(now, deadline)
   if (monthsLeft <= 0) {
     return { program, eligible: false, score: 0, reasons, monthsLeft: 0 }
   }
