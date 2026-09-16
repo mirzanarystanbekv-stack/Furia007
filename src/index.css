@@ -38,8 +38,7 @@
 /* Печать roadmap: чистый лист с планом, без навигации и кнопок */
 @media print {
   header,
-  footer,
-  .print\:hidden {
+  footer {
     display: none !important;
   }
   .card {

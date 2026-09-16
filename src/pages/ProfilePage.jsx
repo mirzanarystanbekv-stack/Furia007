@@ -44,22 +44,19 @@ function Chip({ option, active, onClick }) {
   )
 }
 
-// Мультевыбор чипами — для направлений (1–3) и стран
-function MultiChip({ options, selected, onToggle, max }) {
+// Мультевыбор чипами — для направлений (1–3)
+function MultiChip({ options, selected, onToggle }) {
   return (
-    <>
-      <div className="flex flex-wrap gap-2">
-        {options.map((o) => (
-          <Chip
-            key={o.value}
-            option={o.label}
-            active={selected.includes(o.value)}
-            onClick={() => onToggle(o.value)}
-          />
-        ))}
-      </div>
-      {max && <p className="mt-2 text-xs text-slate-400">Можно выбрать до {max} — скоринг считает каждый вариант отдельным треком</p>}
-    </>
+    <div className="flex flex-wrap gap-2">
+      {options.map((o) => (
+        <Chip
+          key={o.value}
+          option={o.label}
+          active={selected.includes(o.value)}
+          onClick={() => onToggle(o.value)}
+        />
+      ))}
+    </div>
   )
 }
 
@@ -74,8 +71,7 @@ function parseBounded(raw, min, max) {
 }
 
 export default function ProfilePage() {
-  const { profile, updateProfile, toggleCountry, toggleField, loadDemo, resetProfile, hasProfile } = useProfile()
-  const filled = hasProfile
+  const { profile, updateProfile, toggleCountry, toggleField, loadDemo, resetProfile, hasProfile: filled } = useProfile()
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-10">

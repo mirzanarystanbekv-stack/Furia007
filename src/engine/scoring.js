@@ -33,14 +33,14 @@ function fieldList(profile) {
 // Самооценка уровня целевого языка из анкеты (поле 5): A1=1 … C1=5, не выбран = 0.
 // Уверенным считаем B1 и выше: тогда самооценка может закрыть языковой порог ≤6.0,
 // ниже — ненадёжна и на логику не влияет.
-export function selfAssessmentLevel(profile) {
+function selfAssessmentLevel(profile) {
   const i = CEFR_ORDER.indexOf(profile?.target_lang_level)
   return i === -1 ? 0 : i + 1
 }
 
 // Языковое соответствие программе: сертификат — прямое доказательство;
 // если сертификата нет, уверенная самооценка B1+ закрывает пороги до 6.0 включительно
-export function languageMatches(program, profile) {
+function languageMatches(program, profile) {
   const needIelts = typeof program.ielts_required === 'number'
   if (!needIelts) return true
   if ((Number(profile?.ielts) || 0) >= program.ielts_required) return true
@@ -128,12 +128,8 @@ function scoreProgram(program, profile) {
   if (monthDiff(now, deadline) <= 0) {
     deadline = new Date(now.getFullYear() + 1, program.deadline_month, 1)
   }
-  const monthsLeft = monthDiff(now, deadline)
-  if (monthsLeft <= 0) {
-    return { program, eligible: false, score: 0, reasons, monthsLeft: 0 }
-  }
   score += 10
-  reasons.push({ reason: `Дедлайн ещё впереди: ${program.deadline_label} (~${monthsLeft} мес. до окна подачи)`, points: 10 })
+  reasons.push({ reason: `Дедлайн ещё впереди: ${program.deadline_label} (~${monthDiff(now, deadline)} мес. до окна подачи)`, points: 10 })
 
   // +5 достижения (грантовые программы)
   if (profile.achievements && program.grant) {
@@ -153,7 +149,7 @@ function scoreProgram(program, profile) {
     reasons.push({ reason: 'Приоритет «грант» — программа грантовая, поднята в списке', points: 0, isBoost: true })
   }
 
-  return { program, eligible: true, score, reasons, monthsLeft }
+  return { program, score, reasons }
 }
 
 // Главный вход движка: полный список с разбивкой по причинам.
@@ -162,18 +158,13 @@ function scoreProgram(program, profile) {
 // Если выбранных меньше 3 (ОАЭ = 2), список добирается альтернативами из других
 // стран — с флагом outsideChoice для честного бейджа в UI
 export function scoreAllPrograms(profile) {
-  const all = PROGRAMS.map((p) => scoreProgram(p, profile)).filter((r) => r.eligible)
+  const all = PROGRAMS.map((p) => scoreProgram(p, profile))
   const chosen = all.filter((r) => profile.countries?.includes(r.program.country)).sort((a, b) => b.score - a.score)
   const rest = all
     .filter((r) => !profile.countries?.includes(r.program.country))
     .map((r) => ({ ...r, outsideChoice: true }))
     .sort((a, b) => b.score - a.score)
   return [...chosen, ...rest]
-}
-
-// Топ-N рекомендаций
-export function getRecommendations(profile, n = 3) {
-  return scoreAllPrograms(profile).slice(0, n)
 }
 
 // Диагностика профиля: сильные стороны, цель, риски

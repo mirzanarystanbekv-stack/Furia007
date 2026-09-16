@@ -99,6 +99,7 @@ export default function Recommendations() {
   const [showFavs, setShowFavs] = useState(false)
   const [compare, setCompare] = useState([])
   const [limit, setLimit] = useState(12)
+  const resetFilters = () => { setQ(''); setFieldFilter(''); setCountryFilter(''); setMaxCost(30000); setShowFavs(false) }
 
   if (!hasProfile) {
     return (
@@ -205,11 +206,7 @@ export default function Recommendations() {
           ⇄ Сравнить выбранные{compare.length ? ` (${compare.length})` : ''}
         </button>
         {hasActiveFilters && (
-          <button
-            type="button"
-            onClick={() => { setQ(''); setFieldFilter(''); setCountryFilter(''); setMaxCost(30000); setShowFavs(false) }}
-            className="btn-ghost text-xs"
-          >
+          <button type="button" onClick={resetFilters} className="btn-ghost text-xs">
             ✕ Сбросить фильтры
           </button>
         )}
@@ -241,7 +238,7 @@ export default function Recommendations() {
               : 'Под эти вводные ничего не подошло. Попробуйте расширить бюджет или добавить страну.'}
           </p>
           {hasActiveFilters ? (
-            <button type="button" onClick={() => { setQ(''); setFieldFilter(''); setCountryFilter(''); setMaxCost(30000); setShowFavs(false) }} className="btn-primary mt-4">
+            <button type="button" onClick={resetFilters} className="btn-primary mt-4">
               Сбросить фильтры
             </button>
           ) : (

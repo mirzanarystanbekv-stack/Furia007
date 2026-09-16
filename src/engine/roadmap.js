@@ -161,7 +161,6 @@ export function getFearAccent(fear) {
           const w = (s) => (s.kind === 'deadline' ? 0 : 1)
           return w(a) - w(b) || a.month.localeCompare(b.month)
         },
-        banner: null,
       }
     case 'choice':
       return {
@@ -172,7 +171,6 @@ export function getFearAccent(fear) {
           const w = (s) => (s.kind === 'exam' ? 0 : 1)
           return w(a) - w(b) || a.month.localeCompare(b.month)
         },
-        banner: null,
       }
     case 'documents':
       return {
@@ -183,10 +181,9 @@ export function getFearAccent(fear) {
           const w = (s) => (s.kind === 'docs' ? 0 : 1)
           return w(a) - w(b) || a.month.localeCompare(b.month)
         },
-        banner: null,
       }
     default:
-      return { id: null, label: '', text: '', order: null, banner: null }
+      return { id: null, label: '', text: '', order: null }
   }
 }
 
