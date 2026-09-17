@@ -48,7 +48,7 @@ export default function Layout() {
             {hasProfile && (
               <>
                 <Link to="/recommendations" className="text-xl text-slate-400 hover:text-warning-500 transition" title="Избранное — звёздочки на рекомендациях">★</Link>
-                <Link to="/next" className="btn-primary !px-4 !py-2 text-xs sm:text-sm">
+                <Link to="/next" className="btn-primary !px-4 !py-2.5 text-xs sm:text-sm">
                   Мой шаг →
                 </Link>
               </>
@@ -90,7 +90,7 @@ export default function Layout() {
                 )}
               </div>
             ) : (
-              <Link to="/auth" className="btn-secondary !px-4 !py-2 text-xs sm:text-sm">
+              <Link to="/auth" className="btn-secondary !px-4 !py-2.5 text-xs sm:text-sm">
                 Войти
               </Link>
             )}
@@ -105,7 +105,7 @@ export default function Layout() {
                 key={s.to}
                 to={s.to}
                 className={({ isActive }) =>
-                  `whitespace-nowrap px-3 py-1.5 rounded-lg text-xs font-medium transition ${
+                  `whitespace-nowrap px-3 py-2.5 rounded-lg text-xs font-medium transition ${
                     isActive ? 'bg-primary-600 text-white' : 'bg-slate-50 text-slate-600'
                   }`
                 }
