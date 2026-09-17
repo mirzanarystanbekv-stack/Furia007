@@ -23,11 +23,7 @@ const EMPTY_PROFILE = {
   fear: null,
 }
 
-// localStorage может содержать что угодно (ручные правки, старые версии) —
-// проверяем форму данных, а не только парсимость
-// localStorage может содержать что угодно (ручные правки, старые версии) —
-// проверяем форму данных, а не только парсимость; повреждённая запись —
-// тихий откат к дефолту
+// Проверяем форму данных после парсинга; повреждённая запись откатывается к дефолту.
 function loadJSON(key) {
   try {
     return JSON.parse(localStorage.getItem(key) || 'null')
@@ -41,9 +37,10 @@ function loadProfile() {
   if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return { ...EMPTY_PROFILE }
   // сессии до мультевыбора направлений хранили строку — конвертируем
   const field = Array.isArray(parsed.field) ? parsed.field : parsed.field ? [parsed.field] : []
+  const countries = Array.isArray(parsed.countries) ? parsed.countries.filter((x) => typeof x === 'string') : []
   // сессии до ввода прижима могли сохранить экстремальные значения
   const clamp = (v, max) => (typeof v === 'number' ? Math.min(max, Math.max(0, v)) : v)
-  return { ...parsed, field, gpa: clamp(parsed.gpa, 5), ielts: clamp(parsed.ielts, 9) }
+  return { ...parsed, field, countries, gpa: clamp(parsed.gpa, 5), ielts: clamp(parsed.ielts, 9) }
 }
 
 function loadIds(key) {

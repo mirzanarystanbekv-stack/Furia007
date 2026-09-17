@@ -1,9 +1,14 @@
 import { useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useProfile } from '../context/ProfileContext.jsx'
-import { MAX_BASE_SCORE, SCHOLARSHIPS, programScholarships } from '../engine/scoring.js'
+import { programScholarships, scorePercent } from '../engine/scoring.js'
+import {
+  filterByNaturalQuery,
+  parseNaturalQuery,
+  requestGroundedExplanation,
+} from '../engine/aiAssist.js'
 import { VerifiedBadge, DemoBadge } from '../components/Badges.jsx'
-import { FIELDS, COUNTRIES } from '../data/options.js'
+import { FIELDS, COUNTRIES, SCHOLARSHIPS } from '../data/options.js'
 
 const SORTS = [
   { value: 'match', label: 'По совпадению' },
@@ -11,7 +16,7 @@ const SORTS = [
   { value: 'deadline', label: 'Ближе дедлайн' },
 ]
 
-function ProgramCard({ rec, rank, fav, onFav, compareSelected, onCompare }) {
+function ProgramCard({ rec, rank, fav, onFav, compareSelected, onCompare, explanation, explanationLoading, onExplain }) {
   const p = rec.program
   return (
     <article className="card p-5 sm:p-6 hover:shadow-card-hover transition-shadow flex flex-col">
@@ -34,9 +39,9 @@ function ProgramCard({ rec, rank, fav, onFav, compareSelected, onCompare }) {
                 с пометкой «оценочно» — скоринг модельный, не гарантия поступления */}
             <span
               className="rounded-full bg-primary-50 border border-primary-200 px-2 py-0.5 text-[11px] font-bold text-primary-700"
-              title={`Совпадение ${Math.round((rec.score / MAX_BASE_SCORE) * 100)}% от базового порога скоринга — оценка, не гарантия поступления`}
+              title={`Совпадение ${scorePercent(rec.score)}% от базового порога скоринга — оценка, не гарантия поступления`}
             >
-              Совпадение {Math.min(99, Math.round((rec.score / MAX_BASE_SCORE) * 100))}%
+              Совпадение {scorePercent(rec.score)}%
             </span>
             <div className="text-[11px] text-slate-400">оценочно, не гарантия</div>
           </div>
@@ -75,6 +80,22 @@ function ProgramCard({ rec, rank, fav, onFav, compareSelected, onCompare }) {
             </li>
           ))}
         </ul>
+        <button
+          type="button"
+          onClick={onExplain}
+          disabled={explanationLoading}
+          className="btn-secondary !py-2 !px-3 mt-3 text-xs"
+        >
+          {explanationLoading ? 'Готовлю объяснение…' : explanation ? 'Обновить объяснение' : 'Объяснить проще'}
+        </button>
+        {explanation && (
+          <div className="mt-3 rounded-lg bg-white/80 border border-primary-100 p-3 text-sm text-slate-700">
+            <div className="text-[11px] font-bold uppercase tracking-wide text-primary-700">
+              {explanation.mode === 'ai-assisted' ? 'AI-assisted объяснение' : 'Rule-based объяснение'}
+            </div>
+            <p className="mt-1">{explanation.text}</p>
+          </div>
+        )}
       </div>
 
       <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
@@ -88,15 +109,13 @@ function ProgramCard({ rec, rank, fav, onFav, compareSelected, onCompare }) {
         </div>
       </div>
 
-      {onCompare && (
-        <button
-          type="button"
-          onClick={() => onCompare(p.id)}
-          className={`btn mt-4 !py-2 text-xs w-full ${compareSelected ? 'btn-secondary' : 'btn-ghost border border-slate-200'}`}
-        >
-          {compareSelected ? '✓ В сравнении' : '⇄ В сравнение'}
-        </button>
-      )}
+      <button
+        type="button"
+        onClick={() => onCompare(p.id)}
+        className={`btn mt-4 !py-2 text-xs w-full ${compareSelected ? 'btn-secondary' : 'btn-ghost border border-slate-200'}`}
+      >
+        {compareSelected ? '✓ В сравнении' : '⇄ В сравнение'}
+      </button>
     </article>
   )
 }
@@ -106,6 +125,11 @@ export default function Recommendations() {
   const navigate = useNavigate()
 
   const [q, setQ] = useState('')
+  const [smartQuery, setSmartQuery] = useState('')
+  const [smartIntent, setSmartIntent] = useState(() => parseNaturalQuery(''))
+  const [smartError, setSmartError] = useState('')
+  const [explanations, setExplanations] = useState({})
+  const [explanationLoading, setExplanationLoading] = useState({})
   const [fieldFilter, setFieldFilter] = useState('')
   const [countryFilter, setCountryFilter] = useState('')
   const [schFilter, setSchFilter] = useState('')
@@ -114,19 +138,28 @@ export default function Recommendations() {
   const [showFavs, setShowFavs] = useState(false)
   const [compare, setCompare] = useState([])
   const [limit, setLimit] = useState(12)
-  const resetFilters = () => { setQ(''); setFieldFilter(''); setCountryFilter(''); setSchFilter(''); setMaxCost(30000); setShowFavs(false) }
+  const resetFilters = () => {
+    setQ('')
+    setSmartQuery('')
+    setSmartIntent(parseNaturalQuery(''))
+    setSmartError('')
+    setFieldFilter('')
+    setCountryFilter('')
+    setSchFilter('')
+    setMaxCost(30000)
+    setShowFavs(false)
+  }
 
-  if (!hasProfile) {
-    return (
-      <div className="max-w-3xl mx-auto px-4 py-16 text-center">
-        <p className="text-slate-600">Сначала заполните анкету — рекомендации строятся из вашего профиля.</p>
-        <Link to="/profile" className="btn-primary mt-4">Заполнить анкету</Link>
-      </div>
-    )
+  const applySmartQuery = (event) => {
+    event.preventDefault()
+    const intent = parseNaturalQuery(smartQuery)
+    setSmartIntent(intent)
+    setSmartError(intent.hasIntent ? '' : 'Опишите направление, страну, язык, бюджет или стипендию.')
+    setLimit(12)
   }
 
   const filtered = useMemo(() => {
-    let list = scored
+    let list = filterByNaturalQuery(scored, smartIntent)
     if (showFavs) list = list.filter((r) => favs.includes(r.program.id))
     const query = q.trim().toLowerCase()
     if (query) {
@@ -137,15 +170,25 @@ export default function Recommendations() {
     if (fieldFilter) list = list.filter((r) => r.program.field === fieldFilter)
     if (countryFilter) list = list.filter((r) => r.program.country === countryFilter)
     if (schFilter) list = list.filter((r) => programScholarships(r.program).includes(schFilter))
-    list = list.filter((r) => (r.program.tuition_usd ?? 0) <= maxCost)
+    list = list.filter((r) => r.program.tuition_usd === null || (r.program.tuition_usd ?? 0) <= maxCost)
     const sorted = [...list]
-    if (sort === 'cheap') sorted.sort((a, b) => (a.program.tuition_usd ?? 0) - (b.program.tuition_usd ?? 0))
-    if (sort === 'deadline') sorted.sort((a, b) => a.program.deadline_month - b.program.deadline_month)
+    if (sort === 'cheap') sorted.sort((a, b) => (a.program.tuition_usd === null ? Infinity : a.program.tuition_usd ?? 0) - (b.program.tuition_usd === null ? Infinity : b.program.tuition_usd ?? 0))
+    if (sort === 'deadline') sorted.sort((a, b) => (a.program.deadline_month === null ? Infinity : a.program.deadline_month ?? Infinity) - (b.program.deadline_month === null ? Infinity : b.program.deadline_month ?? Infinity))
     return sorted
-  }, [scored, favs, showFavs, q, fieldFilter, countryFilter, schFilter, maxCost, sort])
+  }, [scored, smartIntent, favs, showFavs, q, fieldFilter, countryFilter, schFilter, maxCost, sort])
+
+  const explainRecommendation = async (rec) => {
+    setExplanationLoading((current) => ({ ...current, [rec.program.id]: true }))
+    try {
+      const explanation = await requestGroundedExplanation({ recommendation: rec, profile })
+      setExplanations((current) => ({ ...current, [rec.program.id]: explanation }))
+    } finally {
+      setExplanationLoading((current) => ({ ...current, [rec.program.id]: false }))
+    }
+  }
 
   const visible = filtered.slice(0, limit)
-  const hasActiveFilters = q.trim() || fieldFilter || countryFilter || schFilter || maxCost < 30000 || showFavs
+  const hasActiveFilters = Boolean(smartIntent.raw || q.trim() || fieldFilter || countryFilter || schFilter || maxCost < 30000 || showFavs)
 
   const toggleCompare = (id) =>
     setCompare((sel) => {
@@ -157,6 +200,15 @@ export default function Recommendations() {
   const goCompare = () => {
     if (compare.length === 0) return
     navigate(`/compare?ids=${compare.join(',')}`)
+  }
+
+  if (!hasProfile) {
+    return (
+      <div className="max-w-3xl mx-auto px-4 py-16 text-center">
+        <p className="text-slate-600">Сначала заполните анкету — рекомендации строятся из вашего профиля.</p>
+        <Link to="/profile" className="btn-primary mt-4">Заполнить анкету</Link>
+      </div>
+    )
   }
 
   return (
@@ -171,8 +223,29 @@ export default function Recommendations() {
         <Link to="/profile" className="btn-secondary text-xs">Изменить вводные</Link>
       </div>
 
+      {/* Локальный естественный поиск: ИИ не получает право придумывать записи каталога */}
+      <form onSubmit={applySmartQuery} className="mt-6 card p-4">
+        <label className="text-sm font-semibold text-slate-700" htmlFor="smart-university-search">Умный поиск по вузам</label>
+        <div className="mt-2 flex flex-col sm:flex-row gap-2">
+          <input
+            id="smart-university-search"
+            type="search"
+            className="input"
+            placeholder="Например: медицина на английском в Европе с грантом"
+            value={smartQuery}
+            onChange={(e) => setSmartQuery(e.target.value)}
+          />
+          <button type="submit" className="btn-primary shrink-0">Найти в каталоге</button>
+        </div>
+        <p className="mt-2 text-xs text-slate-500">Запрос сначала разбирается локально и ищется только среди реальных записей каталога.</p>
+        {smartIntent.summary.length > 0 && (
+          <p className="mt-2 text-xs text-primary-700">Фильтры запроса: {smartIntent.summary.join(' · ')}</p>
+        )}
+        {smartError && <p className="mt-2 text-sm text-error-700">{smartError}</p>}
+      </form>
+
       {/* Поиск и фильтры */}
-      <div className="mt-6 card p-4 grid gap-3 md:grid-cols-[1fr_auto]">
+      <div className="mt-4 card p-4 grid gap-3 md:grid-cols-[1fr_auto]">
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <input
             type="search"
@@ -247,6 +320,9 @@ export default function Recommendations() {
               onFav={() => toggleFav(rec.program.id)}
               compareSelected={compare.includes(rec.program.id)}
               onCompare={toggleCompare}
+              explanation={explanations[rec.program.id]}
+              explanationLoading={Boolean(explanationLoading[rec.program.id])}
+              onExplain={() => explainRecommendation(rec)}
             />
           ))}
         </div>

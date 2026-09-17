@@ -60,34 +60,67 @@ function MultiChip({ options, selected, onToggle }) {
   )
 }
 
-// Числа с запятой («4,85» — привычный русский ввод) и прижим к границам.
-// type=number отвергает запятую ещё на уровне DOM, поэтому поля — текстовые
-function parseBounded(raw, min, max) {
-  const s = String(raw).trim().replace(',', '.')
-  if (s === '') return ''
-  const n = Number(s)
+// Сохраняем промежуточное состояние («4.»), иначе controlled input сразу
+// превращает его в 4 и не даёт допечатать десятичную часть.
+function normalizeDecimalInput(raw) {
+  const value = String(raw).replace(',', '.')
+  if (!/^\d*(\.\d*)?$/.test(value)) return null
+  return value
+}
+
+function commitDecimal(raw, min, max) {
+  const value = normalizeDecimalInput(raw)
+  if (value === null || value === '') return ''
+  const n = Number(value)
   if (Number.isNaN(n)) return ''
   return Math.min(max, Math.max(min, n))
 }
 
 export default function ProfilePage() {
   const { profile, updateProfile, toggleCountry, toggleField, loadDemo, resetProfile, hasProfile: filled } = useProfile()
-
+  const completedFields = [
+    profile.grade,
+    profile.field.length > 0,
+    profile.countries.length > 0,
+    profile.gpa !== '',
+    profile.ielts !== '' || profile.target_lang_level,
+    profile.budget,
+    profile.priority,
+    profile.fear,
+  ].filter(Boolean).length
   return (
     <div className="max-w-3xl mx-auto px-4 py-10">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold text-slate-900">Анкета абитуриента</h1>
-          <p className="text-sm text-slate-500 mt-1">8 полей · сохраняется автоматически · рекомендации пересчитываются на лету</p>
+          <p className="text-sm text-slate-500 mt-1">Ответьте на 8 вопросов — подборка и roadmap обновятся автоматически</p>
         </div>
         <div className="flex gap-2">
           <button type="button" onClick={loadDemo} className="btn-secondary text-xs">
-            Демо-профиль Алихана
+            Заполнить демо-профиль
           </button>
           <button type="button" onClick={resetProfile} className="btn-ghost text-xs">
             Сбросить
           </button>
         </div>
+      </div>
+
+      <div className="mt-6 rounded-2xl border border-primary-100 bg-primary-50/70 p-4 sm:p-5" aria-live="polite">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <p className="text-sm font-semibold text-primary-900">
+              {completedFields === 0 ? 'Начните с трёх базовых ответов' : completedFields === 8 ? 'Профиль готов к диагностике' : 'Профиль заполняется'}
+            </p>
+            <p className="mt-1 text-xs text-primary-700">
+              {completedFields === 0 ? 'Выберите класс, направление и хотя бы одну страну — этого достаточно, чтобы начать.' : 'Можно менять ответы в любой момент — рекомендации пересчитаются сами.'}
+            </p>
+          </div>
+          <span className="rounded-full bg-white px-3 py-1 text-xs font-bold text-primary-700 shadow-sm">{completedFields}/8</span>
+        </div>
+        <div className="mt-4 h-2 overflow-hidden rounded-full bg-white">
+          <div className="h-full rounded-full bg-primary-500 transition-all duration-500" style={{ width: `${Math.round((completedFields / 8) * 100)}%` }} />
+        </div>
+        <p className="mt-2 text-[11px] text-primary-700">Автосохранение включено · данные остаются в браузере</p>
       </div>
 
       <form className="mt-8 space-y-6" onSubmit={(e) => e.preventDefault()}>
@@ -123,12 +156,17 @@ export default function ProfilePage() {
           <h2 className="label">4. Академический балл и достижения</h2>
           <label className="block">
             <span className="text-xs text-slate-500">GPA (0–5)</span>
+            <span className="mt-1 block text-[11px] text-slate-400">Например: 4.5 или 4,5</span>
             <input
               type="text" inputMode="decimal"
               className="input mt-1"
-              placeholder="например, 4,85"
+              placeholder="например, 4.5 или 4,5"
               value={profile.gpa}
-              onChange={(e) => updateProfile({ gpa: parseBounded(e.target.value, 0, 5) })}
+              onChange={(e) => {
+                const value = normalizeDecimalInput(e.target.value)
+                if (value !== null) updateProfile({ gpa: value })
+              }}
+              onBlur={(e) => updateProfile({ gpa: commitDecimal(e.target.value, 0, 5) })}
             />
           </label>
           <label className="mt-4 flex items-center gap-3 cursor-pointer select-none">
@@ -156,12 +194,17 @@ export default function ProfilePage() {
           <h2 className="label">5. Языки и баллы</h2>
           <label className="block">
             <span className="text-xs text-slate-500">IELTS (0–9, если сдавали)</span>
+            <span className="mt-1 block text-[11px] text-slate-400">Можно вводить точку или запятую</span>
             <input
               type="text" inputMode="decimal"
               className="input mt-1"
-              placeholder="например, 6,0 (если сдавали)"
+              placeholder="например, 6.5 или 6,5"
               value={profile.ielts}
-              onChange={(e) => updateProfile({ ielts: parseBounded(e.target.value, 0, 9) })}
+              onChange={(e) => {
+                const value = normalizeDecimalInput(e.target.value)
+                if (value !== null) updateProfile({ ielts: value })
+              }}
+              onBlur={(e) => updateProfile({ ielts: commitDecimal(e.target.value, 0, 9) })}
             />
           </label>
           <div className="mt-4">

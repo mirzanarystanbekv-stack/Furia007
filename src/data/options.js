@@ -10,9 +10,18 @@ export const FIELDS = [
   { value: 'engineering', label: 'Инженерия' },
   { value: 'economics', label: 'Экономика / Бизнес' },
   { value: 'medicine', label: 'Медицина' },
+  { value: 'dentistry', label: 'Стоматология' },
+  { value: 'pharmacy', label: 'Фармацевтика' },
   { value: 'law', label: 'Право / Юриспруденция' },
+  { value: 'business', label: 'Бизнес и менеджмент' },
+  { value: 'data-science', label: 'Data Science / Аналитика' },
+  { value: 'cybersecurity', label: 'Кибербезопасность' },
   { value: 'science', label: 'Наука (физика, мат, химия)' },
-  { value: 'design', label: 'Дизайн / Архитектура' },
+  { value: 'architecture', label: 'Архитектура' },
+  { value: 'design', label: 'Дизайн' },
+  { value: 'psychology', label: 'Психология' },
+  { value: 'pedagogy', label: 'Педагогика' },
+  { value: 'international-relations', label: 'Международные отношения' },
 ]
 
 // Страны, по которым в базе есть программы (universities.json)
@@ -36,6 +45,16 @@ export const TARGET_LANGUAGES = [
   { value: 'B1', label: 'B1 — средний' },
   { value: 'B2', label: 'B2 — выше среднего' },
   { value: 'C1', label: 'C1 — продвинутый' },
+]
+
+export const SCHOLARSHIPS = [
+  { id: 'turkiye', label: 'Türkiye Bursları', match: 'Türkiye Bursları' },
+  { id: 'hungaricum', label: 'Stipendium Hungaricum', match: 'Stipendium Hungaricum' },
+  { id: 'gks', label: 'GKS (Корея)', match: 'GKS' },
+  { id: 'csc', label: 'CSC (Китай)', match: 'CSC' },
+  { id: 'nawa', label: 'NAWA (Польша)', match: 'NAWA' },
+  { id: 'rossotr', label: 'Квота РФ', match: 'Rossotrudnichestvo' },
+  { id: 'kz-grant', label: 'Гос. гранты РК', match: 'гос. гранты РК' },
 ]
 
 export const BUDGETS = [

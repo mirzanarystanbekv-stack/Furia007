@@ -30,7 +30,9 @@ export function buildRoadmap(profile, scoredPrograms) {
   const chosenPrograms = profile.countries?.length
     ? scoredPrograms.filter((r) => profile.countries.includes(r.program.country))
     : scoredPrograms
-  const top = chosenPrograms.slice(0, 3)
+  const top = chosenPrograms
+    .filter((r) => typeof r.program.deadline_month === 'number')
+    .slice(0, 3)
   const topGrant = top.find((r) => r.program.grant)
 
   const hasTurkey = profile.countries?.includes('Турция')

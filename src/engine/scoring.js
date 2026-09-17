@@ -6,8 +6,10 @@
 // хранится как {reason, points} — текст «почему подходит» строится из них.
 
 import programsData from '../data/universities.json'
+import expandedProgramsData from '../data/universities-expanded.json'
+import { SCHOLARSHIPS } from '../data/options.js'
 
-export const PROGRAMS = programsData.programs
+export const PROGRAMS = [...programsData.programs, ...expandedProgramsData.programs]
 
 export const MAX_BASE_SCORE = 30 + 25 + 20 + 15 + 10 // 100 — базовый порог без бонуса за достижения;
 // реальные скоры выше из-за множителей (грант-буст, класс)
@@ -54,9 +56,12 @@ export function needsPrepYear(program, profile) {
 }
 
 function assessBudget(program, profile) {
-  const tuition = program.tuition_usd ?? 0
+  const tuition = program.tuition_usd
   const fmt = (n) => n.toLocaleString('ru-RU')
   const grantHint = program.grant ? ' — грант может покрыть, проверьте условия конкурса' : ''
+  if (tuition === null || typeof tuition !== 'number') {
+    return { fits: false, note: 'стоимость не подтверждена — уточните на официальном сайте' }
+  }
   // Бесплатное (грантовое) обучение — честный ноль в данных; формулировка
   // «грант покрывает» как факт — только для verified-программ
   if (tuition === 0) {
@@ -121,17 +126,19 @@ function scoreProgram(program, profile) {
     reasons.push({ reason: `Бюджет не укладывается: ${budget.note}`, points: 0 })
   }
 
-  // +10 дедлайн ещё не прошёл (иначе программа вообще не показывается).
-  // Окна приёма повторяются ежегодно ("по прошлым годам"), поэтому если окно этого
-  // года уже прошло — берём ближайший будущий цикл. Программа скрывается только
-  // если заявка реально больше не принимается (в демо-базе таких нет).
-  const now = getNow()
-  let deadline = new Date(now.getFullYear(), program.deadline_month, 1)
-  if (monthDiff(now, deadline) <= 0) {
-    deadline = new Date(now.getFullYear() + 1, program.deadline_month, 1)
+  // +10 дедлайн ещё не прошёл. Для демо-записей без подтверждённого окна
+  // баллы не начисляются и в roadmap такая заявка не попадает.
+  if (typeof program.deadline_month === 'number') {
+    const now = getNow()
+    let deadline = new Date(now.getFullYear(), program.deadline_month, 1)
+    if (monthDiff(now, deadline) <= 0) {
+      deadline = new Date(now.getFullYear() + 1, program.deadline_month, 1)
+    }
+    score += 10
+    reasons.push({ reason: `Дедлайн ещё впереди: ${program.deadline_label} (~${monthDiff(now, deadline)} мес. до окна подачи)`, points: 10 })
+  } else {
+    reasons.push({ reason: 'Дедлайн не подтверждён — уточните окно подачи на официальном сайте', points: 0 })
   }
-  score += 10
-  reasons.push({ reason: `Дедлайн ещё впереди: ${program.deadline_label} (~${monthDiff(now, deadline)} мес. до окна подачи)`, points: 10 })
 
   // +5 достижения (грантовые программы)
   if (profile.achievements && program.grant) {
@@ -146,7 +153,7 @@ function scoreProgram(program, profile) {
   // только программы с бесплатным обучением (tuition 0 или семестровый взнос
   // < $1000, как в госвузах Германии). «Грантовые» с платным fallback
   // (merit-scholarships США $18k+) не поднимаются — это не бесплатное
-  if (profile.priority === 'grant' && program.grant && (program.tuition_usd ?? 0) < 1000) {
+  if (profile.priority === 'grant' && program.grant && typeof program.tuition_usd === 'number' && program.tuition_usd < 1000) {
     score *= GRANT_MULTIPLIER
     reasons.push({ reason: 'Приоритет «грант» — программа грантовая, поднята в списке', points: 0, isBoost: true })
   }
@@ -171,31 +178,24 @@ export function scoreAllPrograms(profile) {
 
 // Именные гранты из аннотаций scholarship датасета (§8 «подбор стипендий»):
 // одна строка-маркер на грант, распознаётся подстрокой в любом поле scholarship.
-export const SCHOLARSHIPS = [
-  { id: 'turkiye', label: 'Türkiye Bursları', match: 'Türkiye Bursları' },
-  { id: 'hungaricum', label: 'Stipendium Hungaricum', match: 'Stipendium Hungaricum' },
-  { id: 'gks', label: 'GKS (Корея)', match: 'GKS' },
-  { id: 'csc', label: 'CSC (Китай)', match: 'CSC' },
-  { id: 'nawa', label: 'NAWA (Польша)', match: 'NAWA' },
-  { id: 'rossotr', label: 'Квота РФ', match: 'Rossotrudnichestvo' },
-  { id: 'kz-grant', label: 'Гос. гранты РК', match: 'гос. гранты РК' },
-]
-
 // Какие именные гранты упоминаются в поле scholarship программы
 export function programScholarships(program) {
-  return SCHOLARSHIPS.filter((s) => (program.scholarship || '').includes(s.match)).map((s) => s.id)
+  const scholarship = program.scholarship || ''
+  return SCHOLARSHIPS.filter((s) => scholarship.includes(s.match)).map((s) => s.id)
 }
 
-// «Оценка шансов» (§8): top-3 score → проценты от базового порога 100.
-// Уровни: 85%+ «высокие», 65%+ «хорошие», 45%+ «средние», ниже — «требует усиления».
-// Это перевод модельного скоринга в проценты, а не вероятность приёма
+// Перевод модельного score в процент для бейджей и диагностики.
+export function scorePercent(score) {
+  return Math.min(99, Math.round((score / MAX_BASE_SCORE) * 100))
+}
+
+// «Оценка шансов» (§8): среднее top-3 score → проценты.
+// Это перевод модельного скоринга, а не вероятность приёма.
 export function estimateChance(scored) {
   const top = scored.slice(0, 3).map((r) => ({
     id: r.program.id,
     university: r.program.university,
-    program: r.program.program,
-    country: r.program.country,
-    percent: Math.min(99, Math.round((r.score / MAX_BASE_SCORE) * 100)),
+    percent: scorePercent(r.score),
   }))
   const avg = top.length ? Math.round(top.reduce((s, x) => s + x.percent, 0) / top.length) : 0
   const level =
@@ -270,9 +270,18 @@ export function diagnose(profile) {
   if (first === 'economics') goal = 'Экономика / Бизнес-программа'
   if (first === 'engineering') goal = 'Инженерная программа'
   if (first === 'medicine') goal = 'Медицинская программа (MD)'
+  if (first === 'dentistry') goal = 'Стоматологическая программа (DDS/DMD)'
+  if (first === 'pharmacy') goal = 'Фармацевтическая программа'
   if (first === 'law') goal = 'Юридическая программа'
+  if (first === 'business') goal = 'Бизнес / менеджмент-программа'
+  if (first === 'data-science') goal = 'Data Science / аналитическая программа'
+  if (first === 'cybersecurity') goal = 'Программа по кибербезопасности'
   if (first === 'science') goal = 'Программа по естественным наукам'
-  if (first === 'design') goal = 'Программа по дизайну / архитектуре'
+  if (first === 'architecture') goal = 'Архитектурная программа'
+  if (first === 'design') goal = 'Программа по дизайну'
+  if (first === 'psychology') goal = 'Программа по психологии'
+  if (first === 'pedagogy') goal = 'Педагогическая программа'
+  if (first === 'international-relations') goal = 'Программа по международным отношениям'
   if (fields.length > 1) goal += ` (+${fields.length - 1} доп. направление)`
 
   return { strengths, risks, goal, highGpaGrantFlag }

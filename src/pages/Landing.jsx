@@ -2,138 +2,209 @@ import { Link } from 'react-router-dom'
 import { useProfile } from '../context/ProfileContext.jsx'
 
 const FEATURES = [
-  { icon: '🎯', title: 'Честный скоринг', text: 'Рекомендации объясняются прозрачно: почему подходит именно вам — по пунктам с баллами.' },
-  { icon: '📅', title: 'Дедлайны под контролем', text: 'Персональный roadmap: экзамены, документы и окна подачи — с датами и источниками.' },
-  { icon: '🔀', title: 'План Б встроен', text: 'Параллельные треки (Турция + Казахстан): если не пройдёте один — есть запасной.' },
-  { icon: '✅', title: 'Один следующий шаг', text: 'Сервис всегда показывает один конкретный ближайший шаг и трекает прогресс.' },
+  { icon: '01', title: 'Профиль → сигнал', text: '8 коротких вопросов превращаются в понятную картину целей, ограничений и сильных сторон.' },
+  { icon: '02', title: 'Рекомендации с логикой', text: 'Каждая программа объясняет, почему она подходит именно вам — без непрозрачного «магического» рейтинга.' },
+  { icon: '03', title: 'Roadmap без хаоса', text: 'Экзамены, документы и окна подачи собраны в один маршрут с ближайшим действием.' },
+  { icon: '04', title: 'План Б рядом', text: 'Сравнивайте страны и программы, сохраняйте варианты и не зависите от одного сценария.' },
 ]
 
-const JOURNEY = [
-  { n: 1, t: 'Профиль', d: '8 вопросов: класс, интересы, баллы, языки, бюджет' },
-  { n: 2, t: 'Диагностика', d: 'Сильные стороны, риски и образовательная цель' },
-  { n: 3, t: 'Рекомендации', d: 'Топ-3 программы с объяснением «почему подходит»' },
-  { n: 4, t: 'Сравнение', d: 'Таблица: стоимость, дедлайны, язык, город' },
-  { n: 5, t: 'Roadmap', d: 'Пошаговый план до зачисления' },
-  { n: 6, t: 'Следующий шаг', d: 'Одно действие сейчас + трекинг прогресса' },
+const TESTIMONIALS = [
+  { quote: 'Наконец понятно, что делать не «когда-нибудь», а на этой неделе.', name: 'Алихан, 11 класс', meta: 'демо-профиль · Шымкент' },
+  { quote: 'Я увидела не просто список вузов, а причины и реальные следующие шаги.', name: 'Мадина, абитуриентка', meta: 'отзыв из пользовательского сценария' },
+  { quote: 'Сравнение Турции и Казахстана помогло оставить сильный запасной маршрут.', name: 'Ерлан, родитель', meta: 'отзыв из демо-теста' },
+]
+
+const ROUTE_STEPS = [
+  { label: 'Профиль', text: '8 вопросов', state: 'done' },
+  { label: 'Диагностика', text: 'ваши сильные стороны', state: 'done' },
+  { label: 'Рекомендации', text: '123 программы', state: 'active' },
+  { label: 'Roadmap', text: 'следующий шаг', state: 'next' },
 ]
 
 export default function Landing() {
   const { hasProfile, user } = useProfile()
 
   return (
-    <div>
-      {/* Декоративный hero-фон: сетка, световые пятна, маршрутная линия, спутники */}
-      <div className="absolute inset-x-0 top-0 h-[640px] overflow-hidden pointer-events-none" aria-hidden="true">
-        <div className="absolute inset-0 bg-gradient-to-b from-primary-100/80 via-primary-50/60 to-white" />
-        <div
-          className="absolute inset-0 opacity-[0.35]"
-          style={{
-            backgroundImage:
-              'linear-gradient(to right, rgb(79 70 229 / 0.07) 1px, transparent 1px), linear-gradient(to bottom, rgb(79 70 229 / 0.07) 1px, transparent 1px)',
-            backgroundSize: '36px 36px',
-            maskImage: 'radial-gradient(ellipse 80% 60% at 50% 0%, black 45%, transparent 100%)',
-            WebkitMaskImage: 'radial-gradient(ellipse 80% 60% at 50% 0%, black 45%, transparent 100%)',
-          }}
-        />
-        <div className="absolute -top-24 -left-24 h-96 w-96 rounded-full bg-primary-300/40 blur-3xl" />
-        <div className="absolute -top-16 right-[-80px] h-[26rem] w-[26rem] rounded-full bg-accent-400/25 blur-3xl" />
-        <div className="absolute top-72 left-1/2 h-80 w-[36rem] -translate-x-1/2 rounded-full bg-primary-400/20 blur-3xl" />
-        <svg className="absolute inset-0 h-full w-full" fill="none">
-          <path
-            d="M-60 610 C 120 470, 80 340, 260 300 S 520 210, 610 140 S 900 60, 1100 90"
-            stroke="url(#routeGrad)"
-            strokeWidth="2.5"
-            strokeDasharray="1 14"
-            strokeLinecap="round"
-          />
-          <defs>
-            <linearGradient id="routeGrad" x1="0" y1="610" x2="1100" y2="90" gradientUnits="userSpaceOnUse">
-              <stop offset="0" stopColor="#1d9e75" stopOpacity="0" />
-              <stop offset="0.55" stopColor="#1d9e75" stopOpacity="0.6" />
-              <stop offset="1" stopColor="#0c447c" stopOpacity="0.7" />
-            </linearGradient>
-          </defs>
-        </svg>
-        <span className="absolute top-24 left-[38%] h-2.5 w-2.5 rounded-full bg-primary-500 shadow-[0_0_16px_4px_rgba(29,158,117,0.5)]" />
-        <span className="absolute top-52 left-[62%] h-2 w-2 rounded-full bg-accent-500 shadow-[0_0_14px_4px_rgba(12,68,124,0.45)]" />
-      </div>
-      <section className="relative">
-        <div className="max-w-6xl mx-auto px-4 py-16 sm:py-24 text-center relative">
-          <span className="inline-block rounded-full bg-primary-100 text-primary-700 px-4 py-1.5 text-xs font-bold tracking-wide uppercase">
-            LOCUS Hackathon 2026 · Кейс №2
-          </span>
-          <h1 className="mt-5 text-4xl sm:text-5xl font-extrabold tracking-tight text-slate-900 leading-tight">
-            Персональный маршрут
-            <span className="text-primary-600"> поступления</span>
-          </h1>
-          <p className="mt-5 text-lg text-slate-600 max-w-2xl mx-auto">
-            Заполните короткую анкету — получите подборку вузов с честным объяснением «почему подходит именно
-            вам», сравнение вариантов и пошаговый план действий до зачисления.
-          </p>
-          <div className="mt-8 flex flex-col sm:flex-row gap-3 justify-center">
-            {user ? (
-              <Link to="/next" className="btn-primary text-base px-8 py-3">
-                Продолжить как {user.name} →
-              </Link>
-            ) : (
-              <Link to="/auth" className="btn-primary text-base px-8 py-3">
-                Создать аккаунт
-              </Link>
-            )}
-            <Link to="/profile" className="btn-secondary text-base px-8 py-3">
-              {hasProfile ? 'Мои рекомендации' : 'Заполнить анкету'}
-            </Link>
-          </div>
-          <p className="mt-4 text-xs text-slate-500">
-            Аккаунт хранится локально в браузере · Данные анкеты никуда не отправляются
-          </p>
+    <div className="bg-slate-950 text-white overflow-hidden">
+      {/* Hero: CSS-анимация заменяет внешний video-asset, поэтому офлайн-сборка остаётся автономной. */}
+      <section className="relative min-h-[680px] flex items-center">
+        <div className="absolute inset-0 pointer-events-none" aria-hidden="true">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_15%_20%,rgba(29,158,117,0.24),transparent_34%),radial-gradient(circle_at_85%_15%,rgba(58,130,246,0.2),transparent_32%),linear-gradient(135deg,#07131d_0%,#0b1724_52%,#101629_100%)]" />
+          <div className="absolute inset-0 opacity-30 [background-image:linear-gradient(rgba(255,255,255,0.05)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.05)_1px,transparent_1px)] [background-size:48px_48px]" />
+          <div className="absolute -left-20 top-24 h-80 w-80 rounded-full bg-primary-500/20 blur-3xl animate-pulse" />
+          <div className="absolute right-[-80px] bottom-16 h-96 w-96 rounded-full bg-blue-500/20 blur-3xl animate-pulse [animation-delay:900ms]" />
         </div>
-      </section>
 
-      {/* Как это работает */}
-      <section className="max-w-6xl mx-auto px-4 py-14">
-        <h2 className="text-2xl sm:text-3xl font-bold text-center text-slate-900">Как это работает — 6 шагов</h2>
-        <div className="mt-10 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {JOURNEY.map((s) => (
-            <div key={s.n} className="card p-5 hover:shadow-card-hover transition-shadow">
-              <div className="flex items-center gap-3">
-                <span className="h-9 w-9 rounded-xl bg-primary-600 text-white font-bold flex items-center justify-center text-sm">
-                  {s.n}
-                </span>
-                <h3 className="font-bold text-slate-900">{s.t}</h3>
+        <div className="relative z-10 max-w-6xl mx-auto w-full px-4 py-16 sm:py-24">
+          <div className="grid lg:grid-cols-[1.02fr_0.98fr] gap-12 items-center">
+            <div>
+              <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-3 py-1.5 text-xs text-slate-300 backdrop-blur">
+                <span className="h-1.5 w-1.5 rounded-full bg-primary-400 shadow-[0_0_12px_3px_rgba(29,158,117,0.7)]" />
+                LOCUS 2026 · кейс №2
               </div>
-              <p className="mt-3 text-sm text-slate-600">{s.d}</p>
+              <h1 className="mt-6 max-w-3xl text-4xl font-semibold leading-[1.08] tracking-tight text-white sm:text-6xl">
+                МаршрутПоступления
+                <span className="block bg-gradient-to-r from-primary-300 via-cyan-200 to-blue-300 bg-clip-text text-transparent">делает первый экран конкретным.</span>
+              </h1>
+              <p className="mt-6 max-w-xl text-base leading-7 text-slate-300 sm:text-lg">
+                Не просто каталог вузов. Один персональный маршрут: от анкеты и честных рекомендаций до понятного действия, которое можно сделать сегодня.
+              </p>
+              <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+                <Link to="/profile" className="btn-primary !rounded-xl !bg-primary-500 !px-6 !py-3.5 !text-base !text-white hover:!bg-primary-400">
+                  {hasProfile ? 'Открыть мои рекомендации' : 'Открыть маршрут'}
+                  <span aria-hidden="true">↗</span>
+                </Link>
+                <Link to={user ? '/next' : '/auth'} className="btn !rounded-xl !border !border-white/15 !bg-white/5 !px-6 !py-3.5 !text-base !text-slate-200 hover:!bg-white/10">
+                  {user ? 'Продолжить маршрут' : 'Создать аккаунт'}
+                </Link>
+              </div>
+              <div className="mt-6 flex flex-wrap gap-x-5 gap-y-2 text-xs text-slate-400">
+                <span>✓ rule-based и прозрачно</span>
+                <span>✓ работает офлайн</span>
+                <span>✓ данные остаются в браузере</span>
+              </div>
             </div>
-          ))}
+
+            <div className="relative lg:pl-6" aria-label="Предпросмотр персонального маршрута">
+              <div className="absolute -inset-8 rounded-[2rem] bg-primary-400/10 blur-3xl" />
+              <div className="relative rounded-[1.75rem] border border-white/15 bg-white/[0.07] p-3 shadow-2xl backdrop-blur-xl">
+                <div className="rounded-2xl border border-white/10 bg-slate-950/70 p-5 sm:p-6">
+                  <div className="flex items-center justify-between border-b border-white/10 pb-4">
+                    <div>
+                      <p className="text-[10px] uppercase tracking-[0.2em] text-primary-300">live route preview</p>
+                      <p className="mt-1 text-sm font-semibold text-white">Ваш маршрут поступления</p>
+                    </div>
+                    <span className="rounded-full border border-primary-400/30 bg-primary-400/10 px-2.5 py-1 text-[10px] text-primary-200">обновляется</span>
+                  </div>
+                  <p className="mt-3 text-[11px] text-amber-200/90">Демо-превью — не персональный расчёт</p>
+                  <div className="mt-6 space-y-4">
+                    {ROUTE_STEPS.map((step, index) => (
+                      <div key={step.label} className="flex items-center gap-3">
+                        <div className={`relative flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-xs font-bold ${step.state === 'active' ? 'bg-primary-400 text-slate-950 shadow-[0_0_20px_rgba(52,211,153,0.45)]' : step.state === 'done' ? 'bg-white/15 text-primary-200' : 'bg-white/5 text-slate-500'}`}>
+                          {step.state === 'done' ? '✓' : index + 1}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center justify-between gap-3">
+                            <p className={`text-sm font-medium ${step.state === 'next' ? 'text-slate-400' : 'text-white'}`}>{step.label}</p>
+                            <span className="text-[10px] text-slate-500">{step.state === 'active' ? 'сейчас' : step.state === 'next' ? 'дальше' : 'готово'}</span>
+                          </div>
+                          <p className="mt-1 text-xs text-slate-500">{step.text}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="mt-6 rounded-xl border border-primary-400/20 bg-primary-400/10 p-4">
+                    <div className="flex items-start justify-between gap-4">
+                      <div>
+                        <p className="text-[10px] uppercase tracking-[0.16em] text-primary-300">next action</p>
+                        <p className="mt-1 text-sm font-medium text-white">Проверить требования IELTS</p>
+                      </div>
+                      <span className="text-lg text-primary-300">→</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div className="absolute -bottom-5 -left-2 hidden rounded-xl border border-white/15 bg-slate-900/90 px-4 py-3 shadow-xl backdrop-blur sm:block">
+                <p className="text-[10px] uppercase tracking-wider text-slate-500">подходящих программ</p>
+                <p className="mt-1 text-xl font-semibold text-white">123 <span className="text-xs font-normal text-primary-300">найдено</span></p>
+              </div>
+            </div>
+          </div>
         </div>
       </section>
 
-      {/* Почему это работает */}
-      <section className="bg-white border-y border-slate-100">
-        <div className="max-w-6xl mx-auto px-4 py-14">
-          <h2 className="text-2xl sm:text-3xl font-bold text-center text-slate-900">Почему это работает</h2>
-          <div className="mt-10 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {FEATURES.map((f) => (
-              <div key={f.title} className="card p-5">
-                <div className="text-2xl">{f.icon}</div>
-                <h3 className="mt-3 font-bold text-slate-900">{f.title}</h3>
-                <p className="mt-2 text-sm text-slate-600">{f.text}</p>
+      {/* Features */}
+      <section className="border-t border-white/10 bg-slate-950">
+        <div className="max-w-6xl mx-auto px-4 py-20 sm:py-24">
+          <div className="max-w-2xl">
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary-300">one route, less noise</p>
+            <h2 className="mt-4 text-3xl font-semibold tracking-tight text-white sm:text-4xl">Вся сложность поступления — в одном спокойном интерфейсе.</h2>
+          </div>
+          <div className="mt-12 grid gap-px overflow-hidden rounded-2xl border border-white/10 bg-white/10 sm:grid-cols-2 lg:grid-cols-4">
+            {FEATURES.map((feature) => (
+              <div key={feature.title} className="bg-slate-950 p-6 transition hover:bg-white/[0.04]">
+                <span className="text-xs font-semibold text-primary-300">{feature.icon}</span>
+                <h3 className="mt-8 text-base font-semibold text-white">{feature.title}</h3>
+                <p className="mt-3 text-sm leading-6 text-slate-400">{feature.text}</p>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* CTA */}
-      <section className="max-w-6xl mx-auto px-4 py-16 text-center">
-        <h2 className="text-2xl sm:text-3xl font-bold text-slate-900">Начните маршрут за 3 минуты</h2>
-        <p className="mt-3 text-slate-600 max-w-xl mx-auto">
-          8 вопросов анкеты — и вы получите персональную подборку вузов и план действий.
-        </p>
-        <Link to="/profile" className="btn-primary mt-7 text-base px-8 py-3">
-          Заполнить анкету
-        </Link>
+      {/* Workflow */}
+      <section className="bg-slate-900/80">
+        <div className="max-w-6xl mx-auto grid gap-12 px-4 py-20 lg:grid-cols-[0.85fr_1.15fr] lg:items-center">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-blue-300">built for decisions</p>
+            <h2 className="mt-4 text-3xl font-semibold tracking-tight text-white">Сначала понять себя. Потом выбрать вуз.</h2>
+            <p className="mt-5 text-sm leading-7 text-slate-400">Мы не прячем логику за красивыми обещаниями. Меняете страну, бюджет или язык — подборка и план пересчитываются заметно и сразу.</p>
+            <Link to="/diagnostics" className="mt-7 inline-flex items-center gap-2 text-sm font-semibold text-primary-300 hover:text-primary-200">Посмотреть диагностику <span>↗</span></Link>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-3">
+            {[
+              ['01', 'Сигнал', 'Поймите, что уже работает в вашем профиле.'],
+              ['02', 'Выбор', 'Сравните варианты по цене, языку и дедлайнам.'],
+              ['03', 'Действие', 'Получите один конкретный шаг вместо списка тревог.'],
+            ].map(([n, title, text]) => (
+              <div key={n} className="rounded-2xl border border-white/10 bg-white/[0.04] p-5">
+                <span className="text-xs text-primary-300">{n}</span>
+                <h3 className="mt-10 font-semibold text-white">{title}</h3>
+                <p className="mt-3 text-sm leading-6 text-slate-400">{text}</p>
+              </div>
+            ))}
+          </div>
+        </div>
       </section>
+
+      {/* Testimonials */}
+      <section className="bg-slate-950">
+        <div className="max-w-6xl mx-auto px-4 py-20 sm:py-24">
+          <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary-300">early signals</p>
+              <h2 className="mt-4 text-3xl font-semibold text-white">Меньше неопределённости. Больше движения.</h2>
+            </div>
+            <span className="text-xs text-slate-500">демо-отзывы пользовательского сценария</span>
+          </div>
+          <div className="mt-10 grid gap-4 md:grid-cols-3">
+            {TESTIMONIALS.map((item) => (
+              <figure key={item.name} className="rounded-2xl border border-white/10 bg-white/[0.04] p-6">
+                <blockquote className="text-base leading-7 text-slate-200">«{item.quote}»</blockquote>
+                <figcaption className="mt-8 border-t border-white/10 pt-4">
+                  <p className="text-sm font-semibold text-white">{item.name}</p>
+                  <p className="mt-1 text-xs text-slate-500">{item.meta}</p>
+                </figcaption>
+              </figure>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Pricing / CTA */}
+      <section className="bg-gradient-to-b from-slate-950 to-slate-900">
+        <div className="max-w-4xl mx-auto px-4 py-20 text-center sm:py-24">
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary-300">start free</p>
+          <h2 className="mt-4 text-3xl font-semibold text-white sm:text-4xl">Ваш первый шаг уже может быть конкретным.</h2>
+          <p className="mx-auto mt-4 max-w-xl text-sm leading-7 text-slate-400">Без подписки и скрытых платежей. Заполните профиль, сохраните прогресс локально и соберите маршрут под свою ситуацию.</p>
+          <div className="mx-auto mt-8 max-w-sm rounded-2xl border border-primary-400/25 bg-primary-400/10 p-6 text-left">
+            <div className="flex items-end justify-between">
+              <div>
+                <p className="text-sm font-semibold text-white">МаршрутПоступления</p>
+                <p className="mt-1 text-xs text-slate-400">для абитуриента</p>
+              </div>
+              <p className="text-2xl font-semibold text-primary-200">free</p>
+            </div>
+            <ul className="mt-5 space-y-2 text-sm text-slate-300">
+              <li>✓ персональная анкета и диагностика</li>
+              <li>✓ рекомендации и сравнение</li>
+              <li>✓ Roadmap и Next Action</li>
+            </ul>
+            <Link to="/profile" className="btn-primary mt-6 w-full !bg-primary-500 !text-white hover:!bg-primary-400">Открыть Data Route ↗</Link>
+          </div>
+        </div>
+      </section>
+
     </div>
   )
 }

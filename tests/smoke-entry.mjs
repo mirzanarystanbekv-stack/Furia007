@@ -1,9 +1,10 @@
 // Смоук-тест движка: запускается через esbuild bundle:
 // npx esbuild tests/smoke-entry.mjs --bundle --format=esm --outfile=tests/.smoke.mjs && node tests/.smoke.mjs
-import { scoreAllPrograms, diagnose, estimateChance, SCHOLARSHIPS, programScholarships, PROGRAMS } from '../src/engine/scoring.js'
+import { scoreAllPrograms, diagnose, estimateChance, programScholarships, PROGRAMS } from '../src/engine/scoring.js'
 import { buildRoadmap, getNextAction } from '../src/engine/roadmap.js'
 import { getFearAccent, buildDocsChecklist } from '../src/data/fearModes.js'
-import { FIELDS, COUNTRIES } from '../src/data/options.js'
+import { FIELDS, COUNTRIES, SCHOLARSHIPS } from '../src/data/options.js'
+import { buildGroundedExplanation, filterByNaturalQuery, parseNaturalQuery, requestGroundedExplanation } from '../src/engine/aiAssist.js'
 
 const profile = {
   grade: 11, field: ['it'], countries: ['Турция', 'Казахстан'], gpa: 4.85,
@@ -173,8 +174,8 @@ const uae = { ...plHu, field: ['engineering'], countries: ['ОАЭ'] }
 const uaeScored = scoreAllPrograms(uae)
 const uaeChosen = uaeScored.filter((r) => !r.outsideChoice)
 assert(uaeScored.length >= 3, `малая страна: ${uaeScored.length} рекомендаций (нужно >=3)`)
-assert(uaeChosen.length === 2, 'ОАЭ: 2 выбранных программы')
-assert(uaeScored.slice(2).every((r) => r.outsideChoice), 'добор после выбранных помечен как альтернатива')
+assert(uaeChosen.length >= 10, `ОАЭ: все реальные программы страны в выбранном пуле (${uaeChosen.length})`)
+assert(uaeScored.slice(uaeChosen.length).every((r) => r.outsideChoice), 'добор после выбранных помечен как альтернатива')
 
 // 19. Roadmap: заявки только в выбранные страны — план 9-классника Казахстана
 //     без «Подать заявку: METU»
@@ -193,8 +194,16 @@ assert(FIELDS.every((f) => fieldsCovered.has(f.value)), 'каждое напра
 assert(COUNTRIES.every((c) => countriesCovered.has(c.value)), 'каждая страна из анкеты есть в базе программ')
 const ids = PROGRAMS.map((p) => p.id)
 assert(new Set(ids).size === ids.length, 'id программ уникальны')
-assert(PROGRAMS.every((p) => typeof p.tuition_usd === 'number' && typeof p.deadline_month === 'number'),
-  'у всех программ есть tuition_usd и deadline_month')
+assert(PROGRAMS.every((p) => (typeof p.tuition_usd === 'number' || p.tuition_usd === null) && (typeof p.deadline_month === 'number' || p.deadline_month === null)),
+  'у всех программ есть числовые или честно неизвестные tuition_usd и deadline_month')
+for (const country of COUNTRIES.map((c) => c.value)) {
+  const universities = new Set(PROGRAMS.filter((p) => p.country === country).map((p) => p.university))
+  assert(universities.size >= 10, `${country}: в каталоге минимум 10 реальных вузов (${universities.size})`)
+}
+const newFields = ['dentistry', 'pharmacy', 'business', 'data-science', 'cybersecurity', 'architecture', 'psychology', 'pedagogy', 'international-relations']
+assert(newFields.every((field) => PROGRAMS.some((p) => p.field === field)), 'жизненные направления представлены в каталоге')
+assert(PROGRAMS.filter((p) => p.verified).every((p) => typeof p.source === 'string' && p.source.startsWith('https://')),
+  'каждая verified-программа имеет официальный source URL')
 
 // 20. Оценка шансов (§8): top-3 → проценты от базового порога, уровни и вердикт
 const chance = estimateChance(scored)
@@ -215,6 +224,34 @@ const gksCount = PROGRAMS.filter((p) => programScholarships(p).includes('gks')).
 assert(gksCount >= 2, `GKS-программ ≥2 (${gksCount})`)
 assert(SCHOLARSHIPS.every((s) => PROGRAMS.some((p) => (p.scholarship || '').includes(s.match))),
   'каждый грант из списка реально встречается в датасете (нет мёртвых фильтров)')
+
+// 22. Естественный поиск: локально извлекает направление, регион, язык, бюджет и грант
+const europeMedicine = parseNaturalQuery('медицина на английском в Европе с грантом до $3000')
+assert(europeMedicine.fields.includes('medicine') && europeMedicine.countries.includes('Германия') && europeMedicine.languages.includes('Английский'),
+  'естественный запрос распознаёт направление, регион и язык')
+assert(europeMedicine.grantOnly === true && europeMedicine.maxCost === 3000, 'естественный запрос распознаёт грант и бюджет')
+const europeMatches = filterByNaturalQuery(scoreAllPrograms(profile), europeMedicine)
+assert(europeMatches.every((r) => ['Германия', 'Венгрия', 'Польша'].includes(r.program.country) && r.program.field === 'medicine'),
+  'локальный поиск показывает только записи из найденного пула')
+const dubaiCyber = parseNaturalQuery('cybersecurity в Дубае under $2000')
+assert(dubaiCyber.fields.includes('cybersecurity') && dubaiCyber.countries.includes('ОАЭ') && dubaiCyber.maxCost === 2000,
+  'естественный запрос понимает английские ключевые слова и город')
+
+// 23. Объяснение grounded: только существующие reasons/status/source, без придуманных фактов
+const grounded = buildGroundedExplanation(scored[0])
+assert(grounded.text.includes(scored[0].reasons[0].reason) && !grounded.text.includes('99999'),
+  'fallback-объяснение использует только причины скоринга и не придумывает цифры')
+const fallbackExplanation = await requestGroundedExplanation({ recommendation: scored[0], profile, endpoint: '' })
+assert(fallbackExplanation.mode === 'rule-based' && fallbackExplanation.text === grounded.text,
+  'при отсутствии AI endpoint используется честный rule-based fallback')
+const rejectedAi = await requestGroundedExplanation({
+  recommendation: scored[0],
+  profile,
+  endpoint: '/api/ai',
+  fetchImpl: async () => ({ ok: true, json: async () => ({ reasonIndexes: [999] }) }),
+})
+assert(rejectedAi.mode === 'rule-based' && rejectedAi.text === grounded.text,
+  'AI-ответ с недопустимыми reason indexes отклоняется без выдуманных полей')
 
 console.log('')
 console.log('Итог: смоук-тест завершён, exit code =', process.exitCode ?? 0)
