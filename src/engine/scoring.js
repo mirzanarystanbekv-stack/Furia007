@@ -169,6 +169,47 @@ export function scoreAllPrograms(profile) {
   return [...chosen, ...rest]
 }
 
+// Именные гранты из аннотаций scholarship датасета (§8 «подбор стипендий»):
+// одна строка-маркер на грант, распознаётся подстрокой в любом поле scholarship.
+export const SCHOLARSHIPS = [
+  { id: 'turkiye', label: 'Türkiye Bursları', match: 'Türkiye Bursları' },
+  { id: 'hungaricum', label: 'Stipendium Hungaricum', match: 'Stipendium Hungaricum' },
+  { id: 'gks', label: 'GKS (Корея)', match: 'GKS' },
+  { id: 'csc', label: 'CSC (Китай)', match: 'CSC' },
+  { id: 'nawa', label: 'NAWA (Польша)', match: 'NAWA' },
+  { id: 'rossotr', label: 'Квота РФ', match: 'Rossotrudnichestvo' },
+  { id: 'kz-grant', label: 'Гос. гранты РК', match: 'гос. гранты РК' },
+]
+
+// Какие именные гранты упоминаются в поле scholarship программы
+export function programScholarships(program) {
+  return SCHOLARSHIPS.filter((s) => (program.scholarship || '').includes(s.match)).map((s) => s.id)
+}
+
+// «Оценка шансов» (§8): top-3 score → проценты от базового порога 100.
+// Уровни: 85%+ «высокие», 65%+ «хорошие», 45%+ «средние», ниже — «требует усиления».
+// Это перевод модельного скоринга в проценты, а не вероятность приёма
+export function estimateChance(scored) {
+  const top = scored.slice(0, 3).map((r) => ({
+    id: r.program.id,
+    university: r.program.university,
+    program: r.program.program,
+    country: r.program.country,
+    percent: Math.min(99, Math.round((r.score / MAX_BASE_SCORE) * 100)),
+  }))
+  const avg = top.length ? Math.round(top.reduce((s, x) => s + x.percent, 0) / top.length) : 0
+  const level =
+    avg >= 85 ? 'высокие' :
+    avg >= 65 ? 'хорошие' :
+    avg >= 45 ? 'средние' : 'требуют усиления'
+  const verdict =
+    avg >= 85 ? 'Профиль сильно попадает в подборку — удерживайте уровень и не пропустите дедлайны.' :
+    avg >= 65 ? 'Хорошие вводные: пара целевых усилений (язык, GPA) поднимет шансы на топ-гранты.' :
+    avg >= 45 ? 'Шансы средние: сфокусируйтесь на 2–3 реалистичных вариантах и закройте слабые места из рисков.' :
+    'Пока сложно — расширьте список стран или бюджет, усильте язык и экзамены.'
+  return { top, avg, level, verdict }
+}
+
 // Диагностика профиля: сильные стороны, цель, риски
 export function diagnose(profile) {
   const strengths = []

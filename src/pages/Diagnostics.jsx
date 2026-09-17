@@ -1,8 +1,16 @@
 import { Link } from 'react-router-dom'
 import { useProfile } from '../context/ProfileContext.jsx'
-import { diagnose } from '../engine/scoring.js'
+import { diagnose, estimateChance } from '../engine/scoring.js'
 import { getFearAccent } from '../data/fearModes.js'
 import { DemoBadge } from '../components/Badges.jsx'
+
+// Цвет уровня шансов из §8: высокие — primary, хорошие — accent, ниже — warning
+const LEVEL_STYLES = {
+  'высокие': 'bg-primary-50 border-primary-200 text-primary-700',
+  'хорошие': 'bg-accent-50 border-accent-200 text-accent-700',
+  'средние': 'bg-warning-50 border-warning-200 text-warning-700',
+  'требуют усиления': 'bg-warning-50 border-warning-200 text-warning-700',
+}
 
 export default function Diagnostics() {
   const { profile, scored, hasProfile } = useProfile()
@@ -18,6 +26,7 @@ export default function Diagnostics() {
 
   const d = diagnose(profile)
   const fear = getFearAccent(profile.fear)
+  const chance = estimateChance(scored)
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-10">
@@ -70,6 +79,34 @@ export default function Diagnostics() {
           </div>
         </section>
       )}
+
+      {/* Оценка шансов (§8): среднее top-3 score → проценты. Обязательная пометка
+          «оценочно, не гарантия» — это перевод модельного скоринга, не вероятность */}
+      <section className="card p-6 mt-6">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h2 className="text-xs font-bold uppercase tracking-wide text-slate-400">Оценка шансов — топ-3 программы</h2>
+          <DemoBadge text="оценочно, не гарантия" />
+        </div>
+        <div className="mt-4 flex flex-wrap items-center gap-3">
+          <span className="text-4xl font-bold text-slate-900">{chance.avg}%</span>
+          <span className={`rounded-full border px-3 py-1 text-sm font-semibold ${LEVEL_STYLES[chance.level] ?? LEVEL_STYLES['средние']}`}>
+            {chance.level} шансы
+          </span>
+        </div>
+        <p className="text-sm text-slate-600 mt-2">{chance.verdict}</p>
+        <div className="mt-4 space-y-2">
+          {chance.top.map((t) => (
+            <div key={t.id} className="flex items-center gap-3">
+              <div className="flex-1 min-w-0">
+                <div className="h-2 rounded-full bg-slate-100 overflow-hidden">
+                  <div className="h-full rounded-full bg-primary-500 transition-all duration-500" style={{ width: `${t.percent}%` }} />
+                </div>
+              </div>
+              <span className="text-xs text-slate-600 truncate max-w-[45%] text-right">{t.university} · {t.percent}%</span>
+            </div>
+          ))}
+        </div>
+      </section>
 
       {/* Модельное предположение из спеки — с обязательным бейджем */}
       {d.highGpaGrantFlag && (

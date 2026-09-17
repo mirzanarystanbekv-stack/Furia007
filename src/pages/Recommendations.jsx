@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useProfile } from '../context/ProfileContext.jsx'
-import { MAX_BASE_SCORE } from '../engine/scoring.js'
+import { MAX_BASE_SCORE, SCHOLARSHIPS, programScholarships } from '../engine/scoring.js'
 import { VerifiedBadge, DemoBadge } from '../components/Badges.jsx'
 import { FIELDS, COUNTRIES } from '../data/options.js'
 
@@ -52,6 +52,14 @@ function ProgramCard({ rec, rank, fav, onFav, compareSelected, onCompare }) {
         <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] text-slate-600">язык: {p.language}</span>
         <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] text-slate-600">{p.admission_track}</span>
         {p.grant && <span className="rounded-full bg-primary-50 border border-primary-200 px-2 py-0.5 text-[11px] text-primary-700 font-semibold">грант возможен</span>}
+        {programScholarships(p).map((sid) => {
+          const s = SCHOLARSHIPS.find((x) => x.id === sid)
+          return (
+            <span key={sid} title={p.scholarship} className="rounded-full bg-accent-50 border border-accent-200 px-2 py-0.5 text-[11px] font-semibold text-accent-700">
+              🎓 {s.label}
+            </span>
+          )
+        })}
       </div>
 
       {/* «Почему подходит именно вам» — строго из причин скоринга */}
@@ -100,12 +108,13 @@ export default function Recommendations() {
   const [q, setQ] = useState('')
   const [fieldFilter, setFieldFilter] = useState('')
   const [countryFilter, setCountryFilter] = useState('')
+  const [schFilter, setSchFilter] = useState('')
   const [maxCost, setMaxCost] = useState(30000)
   const [sort, setSort] = useState('match')
   const [showFavs, setShowFavs] = useState(false)
   const [compare, setCompare] = useState([])
   const [limit, setLimit] = useState(12)
-  const resetFilters = () => { setQ(''); setFieldFilter(''); setCountryFilter(''); setMaxCost(30000); setShowFavs(false) }
+  const resetFilters = () => { setQ(''); setFieldFilter(''); setCountryFilter(''); setSchFilter(''); setMaxCost(30000); setShowFavs(false) }
 
   if (!hasProfile) {
     return (
@@ -127,15 +136,16 @@ export default function Recommendations() {
     }
     if (fieldFilter) list = list.filter((r) => r.program.field === fieldFilter)
     if (countryFilter) list = list.filter((r) => r.program.country === countryFilter)
+    if (schFilter) list = list.filter((r) => programScholarships(r.program).includes(schFilter))
     list = list.filter((r) => (r.program.tuition_usd ?? 0) <= maxCost)
     const sorted = [...list]
     if (sort === 'cheap') sorted.sort((a, b) => (a.program.tuition_usd ?? 0) - (b.program.tuition_usd ?? 0))
     if (sort === 'deadline') sorted.sort((a, b) => a.program.deadline_month - b.program.deadline_month)
     return sorted
-  }, [scored, favs, showFavs, q, fieldFilter, countryFilter, maxCost, sort])
+  }, [scored, favs, showFavs, q, fieldFilter, countryFilter, schFilter, maxCost, sort])
 
   const visible = filtered.slice(0, limit)
-  const hasActiveFilters = q.trim() || fieldFilter || countryFilter || maxCost < 30000 || showFavs
+  const hasActiveFilters = q.trim() || fieldFilter || countryFilter || schFilter || maxCost < 30000 || showFavs
 
   const toggleCompare = (id) =>
     setCompare((sel) => {
@@ -178,6 +188,10 @@ export default function Recommendations() {
           <select className="input" value={countryFilter} onChange={(e) => setCountryFilter(e.target.value)}>
             <option value="">Все страны</option>
             {COUNTRIES.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
+          </select>
+          <select className="input" value={schFilter} onChange={(e) => setSchFilter(e.target.value)}>
+            <option value="">Любая стипендия</option>
+            {SCHOLARSHIPS.map((s) => <option key={s.id} value={s.id}>{s.label}</option>)}
           </select>
           <select className="input" value={sort} onChange={(e) => setSort(e.target.value)}>
             {SORTS.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}

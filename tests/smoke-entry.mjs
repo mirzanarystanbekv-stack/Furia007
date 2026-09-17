@@ -1,6 +1,6 @@
 // Смоук-тест движка: запускается через esbuild bundle:
 // npx esbuild tests/smoke-entry.mjs --bundle --format=esm --outfile=tests/.smoke.mjs && node tests/.smoke.mjs
-import { scoreAllPrograms, diagnose, PROGRAMS } from '../src/engine/scoring.js'
+import { scoreAllPrograms, diagnose, estimateChance, SCHOLARSHIPS, programScholarships, PROGRAMS } from '../src/engine/scoring.js'
 import { buildRoadmap, getNextAction } from '../src/engine/roadmap.js'
 import { getFearAccent, buildDocsChecklist } from '../src/data/fearModes.js'
 import { FIELDS, COUNTRIES } from '../src/data/options.js'
@@ -195,6 +195,26 @@ const ids = PROGRAMS.map((p) => p.id)
 assert(new Set(ids).size === ids.length, 'id программ уникальны')
 assert(PROGRAMS.every((p) => typeof p.tuition_usd === 'number' && typeof p.deadline_month === 'number'),
   'у всех программ есть tuition_usd и deadline_month')
+
+// 20. Оценка шансов (§8): top-3 → проценты от базового порога, уровни и вердикт
+const chance = estimateChance(scored)
+assert(chance.top.length === 3, `шансы считаются по топ-3 (получено ${chance.top.length})`)
+assert(chance.top.every((t) => t.percent > 0 && t.percent <= 99), `проценты в диапазоне (1..99): ${chance.top.map((t) => t.percent).join('/')}`)
+assert(Math.round(chance.top.reduce((s, x) => s + x.percent, 0) / 3) === chance.avg, 'avg — среднее процентов топ-3')
+assert(['высокие', 'хорошие', 'средние', 'требуют усиления'].includes(chance.level), `уровень из шкалы (${chance.level})`)
+assert(chance.verdict.length > 10 && ['высокие', 'хорошие', 'средние', 'требуют усиления'].some((l) => chance.level === l), 'вердикт непустой для уровня')
+const weakChance = estimateChance(scoreAllPrograms({ ...poor, field: ['it'], countries: ['ОАЭ'], budget: 'low', ielts: 0, target_lang_level: '' }))
+assert(weakChance.avg < chance.avg, `слабый профиль даёт ниже проценты (${weakChance.avg} < ${chance.avg})`)
+
+// 21. Стипендии (§8): распознавание именных грантов в scholarship-поле
+const metuSch = programScholarships(PROGRAMS.find((p) => p.id === 'metu-ceng'))
+assert(metuSch.includes('turkiye'), `METU распознаёт Türkiye Bursları (${metuSch.join(',')})`)
+const debrecen = PROGRAMS.find((p) => (p.scholarship || '').includes('Stipendium Hungaricum'))
+assert(debrecen && programScholarships(debrecen).includes('hungaricum'), 'Stipendium Hungaricum распознаётся')
+const gksCount = PROGRAMS.filter((p) => programScholarships(p).includes('gks')).length
+assert(gksCount >= 2, `GKS-программ ≥2 (${gksCount})`)
+assert(SCHOLARSHIPS.every((s) => PROGRAMS.some((p) => (p.scholarship || '').includes(s.match))),
+  'каждый грант из списка реально встречается в датасете (нет мёртвых фильтров)')
 
 console.log('')
 console.log('Итог: смоук-тест завершён, exit code =', process.exitCode ?? 0)
