@@ -24,3 +24,4 @@ tools/
 
 # Mobile viewport harness (verification tooling, not product code)
 mobile-harness.html
+.preview-dev.log
