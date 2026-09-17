@@ -48,7 +48,7 @@ export default function Diagnostics() {
         <h2 className="text-lg font-bold text-slate-900">Сильные стороны</h2>
         <div className="mt-3 grid gap-3 sm:grid-cols-2">
           {d.strengths.map((s) => (
-            <div key={s.title} className="card p-4 border-l-4 border-l-emerald-500">
+            <div key={s.title} className="card p-4 border-l-4 border-l-primary-500">
               <h3 className="font-semibold text-slate-900 text-sm">💪 {s.title}</h3>
               <p className="text-sm text-slate-600 mt-1">{s.text}</p>
             </div>
@@ -62,7 +62,7 @@ export default function Diagnostics() {
           <h2 className="text-lg font-bold text-slate-900">На что обратить внимание</h2>
           <div className="mt-3 grid gap-3 sm:grid-cols-2">
             {d.risks.map((r) => (
-              <div key={r.title} className="card p-4 border-l-4 border-l-amber-500">
+              <div key={r.title} className="card p-4 border-l-4 border-l-warning-500">
                 <h3 className="font-semibold text-slate-900 text-sm">⚠️ {r.title}</h3>
                 <p className="text-sm text-slate-600 mt-1">{r.text}</p>
               </div>
@@ -73,7 +73,7 @@ export default function Diagnostics() {
 
       {/* Модельное предположение из спеки — с обязательным бейджем */}
       {d.highGpaGrantFlag && (
-        <div className="card p-4 mt-6 bg-amber-50/50">
+        <div className="card p-4 mt-6 bg-warning-50/50">
           <div className="flex flex-wrap items-center gap-2">
             <span className="font-semibold text-sm text-slate-900">GPA &gt; 4.5 — вы в зоне топ-грантов</span>
             <DemoBadge text="демонстрационная оценка" />

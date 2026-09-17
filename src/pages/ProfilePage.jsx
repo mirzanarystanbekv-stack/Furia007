@@ -190,7 +190,7 @@ export default function ProfilePage() {
         </section>
 
         <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pb-16">
-          <span className={`text-sm ${filled ? 'text-emerald-600' : 'text-slate-400'}`}>
+          <span className={`text-sm ${filled ? 'text-primary-600' : 'text-slate-400'}`}>
             {filled ? '✓ Профиль заполнен — можно смотреть диагностику' : 'Заполните класс, направление и хотя бы одну страну'}
           </span>
           <Link to="/diagnostics" className={`btn-primary ${filled ? '' : 'opacity-50 pointer-events-none'}`}>

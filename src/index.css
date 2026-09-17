@@ -11,6 +11,12 @@
   }
 }
 
+/* Фон лендинга рисуется от левого края документа */
+html,
+body {
+  overflow-x: clip;
+}
+
 @layer components {
   .btn {
     @apply inline-flex items-center justify-center gap-2 rounded-xl px-5 py-2.5 text-sm font-semibold transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none;

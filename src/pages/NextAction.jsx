@@ -47,7 +47,7 @@ export default function NextAction() {
       </div>
 
       {fear.id === 'deadlines' && (
-        <div className="mt-4 card p-4 border-l-4 border-l-amber-500 bg-amber-50/50 text-sm text-slate-700">
+        <div className="mt-4 card p-4 border-l-4 border-l-warning-500 bg-warning-50/50 text-sm text-slate-700">
           ⏰ <b>Окно подачи:</b> {formatMonth(next.month)}. Не откладывайте — документы готовьте заранее, до окна.
         </div>
       )}
@@ -57,7 +57,7 @@ export default function NextAction() {
         </div>
       )}
       {fear.id === 'choice' && (
-        <div className="mt-4 card p-4 border-l-4 border-l-emerald-500 bg-emerald-50/50 text-sm text-slate-700">
+        <div className="mt-4 card p-4 border-l-4 border-l-primary-500 bg-primary-50/50 text-sm text-slate-700">
           🎯 <b>Почему этот шаг:</b> он вытекает из ваших рекомендаций и прозрачного скоринга — так каждый шаг приближает к выбранному варианту.
         </div>
       )}

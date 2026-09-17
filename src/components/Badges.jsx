@@ -8,7 +8,7 @@ export function VerifiedBadge({ source }) {
       target="_blank"
       rel="noreferrer"
       title={`Источник: ${source}`}
-      className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-semibold text-emerald-700 border border-emerald-200 hover:bg-emerald-100"
+      className="inline-flex items-center gap-1 rounded-full bg-primary-50 px-2 py-0.5 text-[11px] font-semibold text-primary-700 border border-primary-200 hover:bg-primary-100"
     >
       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
         <path d="M20 6 9 17l-5-5" />
@@ -22,7 +22,7 @@ export function DemoBadge({ text = 'демонстрационные данны�
   return (
     <span
       title="Оценочные данные — перепроверить на сайте вуза перед подачей"
-      className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-semibold text-amber-700 border border-amber-200"
+      className="inline-flex items-center gap-1 rounded-full bg-warning-50 px-2 py-0.5 text-[11px] font-semibold text-warning-700 border border-warning-200"
     >
       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
         <path d="M12 9v4m0 4h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z" />
@@ -44,7 +44,7 @@ export function ProgressRing({ value, size = 56 }) {
         cy={size / 2}
         r={r}
         fill="none"
-        stroke="#4f46e5"
+        stroke="#1d9e75"
         strokeWidth="6"
         strokeLinecap="round"
         strokeDasharray={c}

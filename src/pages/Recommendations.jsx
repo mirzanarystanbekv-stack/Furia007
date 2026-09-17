@@ -20,32 +20,38 @@ function ProgramCard({ rec, rank, fav, onFav, compareSelected, onCompare }) {
           {rank && <span className="text-xs font-bold text-primary-600 uppercase tracking-wide">#{rank}</span>}
           <h2 className="font-bold text-slate-900 text-lg leading-snug">{p.university}</h2>
           <p className="text-sm text-slate-600">{p.program} · {p.city}</p>
-        </div>
-        <div className="text-right shrink-0 flex flex-col items-end gap-1">
-          <button
-            type="button"
-            onClick={onFav}
-            aria-pressed={fav}
-            title={fav ? 'Убрать из избранного' : 'В избранное'}
-            className={`text-xl leading-none transition hover:scale-110 ${fav ? 'text-amber-500' : 'text-slate-300 hover:text-amber-400'}`}
-          >
-            {fav ? '★' : '☆'}
-          </button>
-          <div className="text-2xl font-extrabold text-primary-700">{Math.round(rec.score)}</div>
-          <div className="text-[11px] text-slate-400">базовый порог {MAX_BASE_SCORE}</div>
-        </div>
+        </div>          <div className="text-right shrink-0 flex flex-col items-end gap-1">
+            <button
+              type="button"
+              onClick={onFav}
+              aria-pressed={fav}
+              title={fav ? 'Убрать из избранного' : 'В избранное'}
+              className={`text-xl leading-none transition hover:scale-110 ${fav ? 'text-warning-500' : 'text-slate-300 hover:text-warning-400'}`}
+            >
+              {fav ? '★' : '☆'}
+            </button>
+            {/* Бейдж совпадения (§6 ТЗ): score → % от базового порога, всегда
+                с пометкой «оценочно» — скоринг модельный, не гарантия поступления */}
+            <span
+              className="rounded-full bg-primary-50 border border-primary-200 px-2 py-0.5 text-[11px] font-bold text-primary-700"
+              title={`Совпадение ${Math.round((rec.score / MAX_BASE_SCORE) * 100)}% от базового порога скоринга — оценка, не гарантия поступления`}
+            >
+              Совпадение {Math.min(99, Math.round((rec.score / MAX_BASE_SCORE) * 100))}%
+            </span>
+            <div className="text-[11px] text-slate-400">оценочно, не гарантия</div>
+          </div>
       </div>
 
       <div className="mt-3 flex flex-wrap gap-2">
         {rec.outsideChoice && (
-          <span className="rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[11px] font-semibold text-amber-700">
+          <span className="rounded-full border border-warning-200 bg-warning-50 px-2 py-0.5 text-[11px] font-semibold text-warning-700">
             вне выбранных стран — альтернатива
           </span>
         )}
         {p.verified ? <VerifiedBadge source={p.source} /> : <DemoBadge />}
         <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] text-slate-600">язык: {p.language}</span>
         <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] text-slate-600">{p.admission_track}</span>
-        {p.grant && <span className="rounded-full bg-emerald-50 border border-emerald-200 px-2 py-0.5 text-[11px] text-emerald-700 font-semibold">грант возможен</span>}
+        {p.grant && <span className="rounded-full bg-primary-50 border border-primary-200 px-2 py-0.5 text-[11px] text-primary-700 font-semibold">грант возможен</span>}
       </div>
 
       {/* «Почему подходит именно вам» — строго из причин скоринга */}
@@ -54,7 +60,7 @@ function ProgramCard({ rec, rank, fav, onFav, compareSelected, onCompare }) {
         <ul className="mt-2 space-y-1.5">
           {rec.reasons.map((r, i) => (
             <li key={i} className="flex items-start gap-2 text-sm">
-              <span className={`mt-0.5 text-xs font-bold ${r.points > 0 ? 'text-emerald-600' : 'text-amber-600'}`}>
+              <span className={`mt-0.5 text-xs font-bold ${r.points > 0 ? 'text-primary-600' : 'text-warning-600'}`}>
                 {r.points > 0 ? `+${r.points}` : '!'}
               </span>
               <span className="text-slate-700">{r.reason}</span>
@@ -193,7 +199,7 @@ export default function Recommendations() {
         <button
           type="button"
           onClick={() => setShowFavs((v) => !v)}
-          className={`rounded-xl border px-3 py-2 text-xs font-medium transition ${showFavs ? 'border-amber-400 bg-amber-50 text-amber-700' : 'border-slate-200 bg-white text-slate-600 hover:border-amber-300'}`}
+          className={`rounded-xl border px-3 py-2 text-xs font-medium transition ${showFavs ? 'border-warning-400 bg-warning-50 text-warning-700' : 'border-slate-200 bg-white text-slate-600 hover:border-warning-300'}`}
         >
           ★ Избранное{favs.length ? ` (${favs.length})` : ''}
         </button>

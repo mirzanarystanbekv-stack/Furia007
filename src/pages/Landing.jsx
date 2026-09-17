@@ -18,12 +18,47 @@ const JOURNEY = [
 ]
 
 export default function Landing() {
-  const { hasProfile } = useProfile()
+  const { hasProfile, user } = useProfile()
 
   return (
     <div>
-      <section className="bg-gradient-to-b from-primary-50 to-white">
-        <div className="max-w-6xl mx-auto px-4 py-16 sm:py-24 text-center">
+      {/* Декоративный hero-фон: сетка, световые пятна, маршрутная линия, спутники */}
+      <div className="absolute inset-x-0 top-0 h-[640px] overflow-hidden pointer-events-none" aria-hidden="true">
+        <div className="absolute inset-0 bg-gradient-to-b from-primary-100/80 via-primary-50/60 to-white" />
+        <div
+          className="absolute inset-0 opacity-[0.35]"
+          style={{
+            backgroundImage:
+              'linear-gradient(to right, rgb(79 70 229 / 0.07) 1px, transparent 1px), linear-gradient(to bottom, rgb(79 70 229 / 0.07) 1px, transparent 1px)',
+            backgroundSize: '36px 36px',
+            maskImage: 'radial-gradient(ellipse 80% 60% at 50% 0%, black 45%, transparent 100%)',
+            WebkitMaskImage: 'radial-gradient(ellipse 80% 60% at 50% 0%, black 45%, transparent 100%)',
+          }}
+        />
+        <div className="absolute -top-24 -left-24 h-96 w-96 rounded-full bg-primary-300/40 blur-3xl" />
+        <div className="absolute -top-16 right-[-80px] h-[26rem] w-[26rem] rounded-full bg-accent-400/25 blur-3xl" />
+        <div className="absolute top-72 left-1/2 h-80 w-[36rem] -translate-x-1/2 rounded-full bg-primary-400/20 blur-3xl" />
+        <svg className="absolute inset-0 h-full w-full" fill="none">
+          <path
+            d="M-60 610 C 120 470, 80 340, 260 300 S 520 210, 610 140 S 900 60, 1100 90"
+            stroke="url(#routeGrad)"
+            strokeWidth="2.5"
+            strokeDasharray="1 14"
+            strokeLinecap="round"
+          />
+          <defs>
+            <linearGradient id="routeGrad" x1="0" y1="610" x2="1100" y2="90" gradientUnits="userSpaceOnUse">
+              <stop offset="0" stopColor="#1d9e75" stopOpacity="0" />
+              <stop offset="0.55" stopColor="#1d9e75" stopOpacity="0.6" />
+              <stop offset="1" stopColor="#0c447c" stopOpacity="0.7" />
+            </linearGradient>
+          </defs>
+        </svg>
+        <span className="absolute top-24 left-[38%] h-2.5 w-2.5 rounded-full bg-primary-500 shadow-[0_0_16px_4px_rgba(29,158,117,0.5)]" />
+        <span className="absolute top-52 left-[62%] h-2 w-2 rounded-full bg-accent-500 shadow-[0_0_14px_4px_rgba(12,68,124,0.45)]" />
+      </div>
+      <section className="relative">
+        <div className="max-w-6xl mx-auto px-4 py-16 sm:py-24 text-center relative">
           <span className="inline-block rounded-full bg-primary-100 text-primary-700 px-4 py-1.5 text-xs font-bold tracking-wide uppercase">
             LOCUS Hackathon 2026 · Кейс №2
           </span>
@@ -36,17 +71,21 @@ export default function Landing() {
             вам», сравнение вариантов и пошаговый план действий до зачисления.
           </p>
           <div className="mt-8 flex flex-col sm:flex-row gap-3 justify-center">
-            <Link to="/profile" className="btn-primary text-base px-8 py-3">
-              Начать — заполнить анкету
-            </Link>
-            {hasProfile && (
-              <Link to="/recommendations" className="btn-secondary text-base px-8 py-3">
-                Продолжить: мои рекомендации
+            {user ? (
+              <Link to="/next" className="btn-primary text-base px-8 py-3">
+                Продолжить как {user.name} →
+              </Link>
+            ) : (
+              <Link to="/auth" className="btn-primary text-base px-8 py-3">
+                Создать аккаунт
               </Link>
             )}
+            <Link to="/profile" className="btn-secondary text-base px-8 py-3">
+              {hasProfile ? 'Мои рекомендации' : 'Заполнить анкету'}
+            </Link>
           </div>
           <p className="mt-4 text-xs text-slate-500">
-            Без регистрации · Данные хранятся только в вашем браузере (localStorage)
+            Аккаунт хранится локально в браузере · Данные анкеты никуда не отправляются
           </p>
         </div>
       </section>

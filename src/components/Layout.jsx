@@ -1,5 +1,7 @@
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom'
+import { useState } from 'react'
 import { useProfile } from '../context/ProfileContext.jsx'
+import { useAuth } from '../context/AuthContext.jsx'
 
 const STEP_LINKS = [
   { to: '/profile', label: 'Профиль', num: 1 },
@@ -12,6 +14,8 @@ const STEP_LINKS = [
 
 export default function Layout() {
   const { hasProfile } = useProfile()
+  const { user, logout } = useAuth()
+  const [menuOpen, setMenuOpen] = useState(false)
   const location = useLocation()
   const isLanding = location.pathname === '/'
 
@@ -43,11 +47,52 @@ export default function Layout() {
           <div className="flex items-center gap-2">
             {hasProfile && (
               <>
-                <Link to="/recommendations" className="text-xl text-slate-400 hover:text-amber-500 transition" title="Избранное — звёздочки на рекомендациях">★</Link>
+                <Link to="/recommendations" className="text-xl text-slate-400 hover:text-warning-500 transition" title="Избранное — звёздочки на рекомендациях">★</Link>
                 <Link to="/next" className="btn-primary !px-4 !py-2 text-xs sm:text-sm">
                   Мой шаг →
                 </Link>
               </>
+            )}
+
+            {/* Вход / аккаунт */}
+            {user ? (
+              <div className="relative">
+                <button
+                  onClick={() => setMenuOpen((v) => !v)}
+                  className="h-9 w-9 rounded-full bg-primary-600 text-white font-bold text-sm flex items-center justify-center shadow-card hover:bg-primary-700 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2"
+                  title={`${user.name} — меню аккаунта`}
+                  aria-haspopup="menu"
+                  aria-expanded={menuOpen}
+                >
+                  {user.name.charAt(0).toUpperCase()}
+                </button>
+                {menuOpen && (
+                  <>
+                    {/* Клик по подложке закрывает меню */}
+                    <div className="fixed inset-0 z-10" onClick={() => setMenuOpen(false)} />
+                    <div className="absolute right-0 mt-2 w-56 card p-2 z-20" role="menu">
+                      <div className="px-3 py-2">
+                        <p className="text-sm font-semibold text-slate-900 truncate">{user.name}</p>
+                        <p className="text-xs text-slate-500 truncate">{user.email}</p>
+                      </div>
+                      <button
+                        onClick={() => {
+                          setMenuOpen(false)
+                          logout()
+                        }}
+                        className="w-full text-left px-3 py-2 rounded-lg text-sm text-error-600 hover:bg-error-50 transition"
+                        role="menuitem"
+                      >
+                        Выйти
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
+            ) : (
+              <Link to="/auth" className="btn-secondary !px-4 !py-2 text-xs sm:text-sm">
+                Войти
+              </Link>
             )}
           </div>
         </div>
