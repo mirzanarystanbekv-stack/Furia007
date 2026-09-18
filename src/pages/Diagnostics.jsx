@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom'
-import { useProfile } from '../context/ProfileContext.jsx'
-import { diagnose, estimateChance } from '../engine/scoring.js'
+import { useProfile } from '../context/useProfile.js'
+import { buildPortfolioActions, diagnose, estimateChance } from '../engine/scoring.js'
 import { getFearAccent } from '../data/fearModes.js'
 import { DemoBadge } from '../components/Badges.jsx'
 
@@ -26,7 +26,8 @@ export default function Diagnostics() {
 
   const d = diagnose(profile)
   const fear = getFearAccent(profile.fear)
-  const chance = estimateChance(scored)
+  const chance = estimateChance(scored, profile)
+  const portfolioActions = buildPortfolioActions(profile)
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-10">
@@ -94,6 +95,9 @@ export default function Diagnostics() {
           </span>
         </div>
         <p className="text-sm text-slate-600 mt-2">{chance.verdict}</p>
+        <ul className="mt-3 space-y-1.5 text-sm text-slate-700">
+          {chance.reasons.map((reason) => <li key={reason} className="flex items-start gap-2"><span className="text-primary-600">•</span><span>{reason}</span></li>)}
+        </ul>
         <div className="mt-4 space-y-2">
           {chance.top.map((t) => (
             <div key={t.id} className="flex items-center gap-3">
@@ -106,6 +110,25 @@ export default function Diagnostics() {
             </div>
           ))}
         </div>
+      </section>
+
+      <section className="card p-6 mt-6">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <h2 className="text-lg font-bold text-slate-900">Усилить портфолио</h2>
+            <p className="text-sm text-slate-500 mt-1">Конкретные действия под выбранное направление</p>
+          </div>
+          <DemoBadge text="оценочные идеи" />
+        </div>
+        <div className="mt-4 grid gap-3 sm:grid-cols-3">
+          {portfolioActions.map((action) => (
+            <div key={action.id} className="rounded-xl border border-slate-200 bg-slate-50/70 p-4">
+              <h3 className="font-semibold text-sm text-slate-900">{action.title}</h3>
+              <p className="mt-1 text-sm text-slate-600">{action.text}</p>
+            </div>
+          ))}
+        </div>
+        <p className="mt-3 text-xs text-slate-400">Это идеи для усиления заявки, а не требование конкретного вуза.</p>
       </section>
 
       {/* Модельное предположение из спеки — с обязательным бейджем */}

@@ -1,8 +1,10 @@
 import { useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { useProfile } from '../context/ProfileContext.jsx'
-import { programScholarships, scorePercent } from '../engine/scoring.js'
+import { useProfile } from '../context/useProfile.js'
+import { programScholarships, scoreAllPrograms, scorePercent, SCORING_RULES } from '../engine/scoring.js'
+import { buildRoadmap } from '../engine/roadmap.js'
 import {
+  buildRecommendationBrief,
   filterByNaturalQuery,
   parseNaturalQuery,
   requestGroundedExplanation,
@@ -16,7 +18,7 @@ const SORTS = [
   { value: 'deadline', label: 'Ближе дедлайн' },
 ]
 
-function ProgramCard({ rec, rank, fav, onFav, compareSelected, onCompare, explanation, explanationLoading, onExplain }) {
+function ProgramCard({ rec, rank, profile, fav, onFav, compareSelected, onCompare, explanation, explanationLoading, onExplain }) {
   const p = rec.program
   return (
     <article className="card p-5 sm:p-6 hover:shadow-card-hover transition-shadow flex flex-col">
@@ -31,6 +33,7 @@ function ProgramCard({ rec, rank, fav, onFav, compareSelected, onCompare, explan
               onClick={onFav}
               aria-pressed={fav}
               title={fav ? 'Убрать из избранного' : 'В избранное'}
+              aria-label={fav ? 'Убрать программу из избранного' : 'Добавить программу в избранное'}
               className={`text-xl leading-none transition hover:scale-110 ${fav ? 'text-warning-500' : 'text-slate-300 hover:text-warning-400'}`}
             >
               {fav ? '★' : '☆'}
@@ -39,9 +42,9 @@ function ProgramCard({ rec, rank, fav, onFav, compareSelected, onCompare, explan
                 с пометкой «оценочно» — скоринг модельный, не гарантия поступления */}
             <span
               className="rounded-full bg-primary-50 border border-primary-200 px-2 py-0.5 text-[11px] font-bold text-primary-700"
-              title={`Совпадение ${scorePercent(rec.score)}% от базового порога скоринга — оценка, не гарантия поступления`}
+              title={`Совпадение ${scorePercent(rec.score, profile)}% от максимума для этих вводных — оценка, не гарантия поступления`}
             >
-              Совпадение {scorePercent(rec.score)}%
+              Совпадение {scorePercent(rec.score, profile)}%
             </span>
             <div className="text-[11px] text-slate-400">оценочно, не гарантия</div>
           </div>
@@ -80,6 +83,18 @@ function ProgramCard({ rec, rank, fav, onFav, compareSelected, onCompare, explan
             </li>
           ))}
         </ul>
+        <details className="mt-3 rounded-lg border border-primary-100 bg-white/60 px-3 py-2 text-sm text-slate-700">
+          <summary className="cursor-pointer font-semibold text-primary-700">Как мы считаем совпадение</summary>
+          <ul className="mt-2 space-y-1 text-xs text-slate-600">
+            {SCORING_RULES.map((rule) => (
+              <li key={rule.label} className="flex justify-between gap-3">
+                <span>{rule.label}</span>
+                <strong className="shrink-0 text-primary-700">+{rule.points}</strong>
+              </li>
+            ))}
+          </ul>
+          <p className="mt-2 text-[11px] text-slate-500">Затем применяются множитель класса и приоритет гранта. Это оценка совпадения, а не гарантия поступления.</p>
+        </details>
         <button
           type="button"
           onClick={onExplain}
@@ -91,7 +106,7 @@ function ProgramCard({ rec, rank, fav, onFav, compareSelected, onCompare, explan
         {explanation && (
           <div className="mt-3 rounded-lg bg-white/80 border border-primary-100 p-3 text-sm text-slate-700">
             <div className="text-[11px] font-bold uppercase tracking-wide text-primary-700">
-              {explanation.mode === 'ai-assisted' ? 'AI-assisted объяснение' : 'Rule-based объяснение'}
+              {explanation.mode === 'ai-assisted' ? 'AI-assisted объяснение' : 'Локальное объяснение'}
             </div>
             <p className="mt-1">{explanation.text}</p>
           </div>
@@ -137,7 +152,10 @@ export default function Recommendations() {
   const [sort, setSort] = useState('match')
   const [showFavs, setShowFavs] = useState(false)
   const [compare, setCompare] = useState([])
+  const [compareNotice, setCompareNotice] = useState('')
   const [limit, setLimit] = useState(12)
+  const [whatIfBudget, setWhatIfBudget] = useState(profile.budget || 'mid')
+  const [whatIfIelts, setWhatIfIelts] = useState(String(profile.ielts ?? ''))
   const resetFilters = () => {
     setQ('')
     setSmartQuery('')
@@ -157,6 +175,10 @@ export default function Recommendations() {
     setSmartError(intent.hasIntent ? '' : 'Опишите направление, страну, язык, бюджет или стипендию.')
     setLimit(12)
   }
+
+  const whatIfProfile = useMemo(() => ({ ...profile, budget: whatIfBudget, ielts: whatIfIelts }), [profile, whatIfBudget, whatIfIelts])
+  const whatIfScored = useMemo(() => scoreAllPrograms(whatIfProfile).slice(0, 3), [whatIfProfile])
+  const whatIfRoadmap = useMemo(() => buildRoadmap(whatIfProfile, whatIfScored), [whatIfProfile, whatIfScored])
 
   const filtered = useMemo(() => {
     let list = filterByNaturalQuery(scored, smartIntent)
@@ -188,14 +210,23 @@ export default function Recommendations() {
   }
 
   const visible = filtered.slice(0, limit)
+  const recommendationBrief = useMemo(() => buildRecommendationBrief(filtered), [filtered])
   const hasActiveFilters = Boolean(smartIntent.raw || q.trim() || fieldFilter || countryFilter || schFilter || maxCost < 30000 || showFavs)
 
-  const toggleCompare = (id) =>
+  const toggleCompare = (id) => {
     setCompare((sel) => {
-      if (sel.includes(id)) return sel.filter((x) => x !== id)
-      if (sel.length >= 2) return [sel[1], id]
+      if (sel.includes(id)) {
+        setCompareNotice('Вариант убран из сравнения.')
+        return sel.filter((x) => x !== id)
+      }
+      if (sel.length >= 2) {
+        setCompareNotice('Сравнение ограничено двумя вариантами — первый заменён.')
+        return [sel[1], id]
+      }
+      setCompareNotice('Вариант добавлен в сравнение.')
       return [...sel, id]
     })
+  }
 
   const goCompare = () => {
     if (compare.length === 0) return
@@ -223,9 +254,8 @@ export default function Recommendations() {
         <Link to="/profile" className="btn-secondary text-xs">Изменить вводные</Link>
       </div>
 
-      {/* Локальный естественный поиск: ИИ не получает право придумывать записи каталога */}
       <form onSubmit={applySmartQuery} className="mt-6 card p-4">
-        <label className="text-sm font-semibold text-slate-700" htmlFor="smart-university-search">Умный поиск по вузам</label>
+        <label className="text-sm font-semibold text-slate-700" htmlFor="smart-university-search">AI-помощник рекомендаций</label>
         <div className="mt-2 flex flex-col sm:flex-row gap-2">
           <input
             id="smart-university-search"
@@ -237,12 +267,89 @@ export default function Recommendations() {
           />
           <button type="submit" className="btn-primary shrink-0">Найти в каталоге</button>
         </div>
-        <p className="mt-2 text-xs text-slate-500">Запрос сначала разбирается локально и ищется только среди реальных записей каталога.</p>
+        <p className="mt-2 text-xs text-slate-500">Запрос разбирается локально, а рекомендации основаны на данных каталога. Если AI-сервис недоступен, используется локальный режим — без выдуманных цен и дедлайнов.</p>
         {smartIntent.summary.length > 0 && (
           <p className="mt-2 text-xs text-primary-700">Фильтры запроса: {smartIntent.summary.join(' · ')}</p>
         )}
         {smartError && <p className="mt-2 text-sm text-error-700">{smartError}</p>}
       </form>
+
+      <section className="mt-4 card p-5 border-accent-200 bg-accent-50/30">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h2 className="text-base font-bold text-slate-900">Что если изменить вводные?</h2>
+            <p className="mt-1 text-sm text-slate-600">Симулятор не меняет ваш профиль — показывает, как условия повлияют на топ-3.</p>
+          </div>
+          <span className="text-xs rounded-full bg-white border border-accent-200 px-2 py-1 text-accent-700">пересчёт сразу</span>
+        </div>
+        <div className="mt-4 grid gap-3 sm:grid-cols-2">
+          <label className="text-sm text-slate-700">Бюджет
+            <select className="input mt-1" value={whatIfBudget} onChange={(event) => setWhatIfBudget(event.target.value)}>
+              <option value="low">до $1 500/год</option>
+              <option value="mid">до $3 000/год</option>
+              <option value="high">до $30 000/год</option>
+            </select>
+          </label>
+          <label className="text-sm text-slate-700">IELTS
+            <input className="input mt-1" type="number" min="0" max="9" step="0.5" value={whatIfIelts} onChange={(event) => setWhatIfIelts(event.target.value)} placeholder="например, 6.5" />
+          </label>
+        </div>
+        <div className="mt-4 grid gap-2 sm:grid-cols-3">
+          {whatIfScored.map((item) => (
+            <div key={item.program.id} className="rounded-lg bg-white border border-slate-200 p-3">
+              <p className="text-sm font-semibold text-slate-900 truncate">{item.program.university}</p>
+              <p className="mt-1 text-xs text-slate-500 truncate">{item.program.program}</p>
+              <p className="mt-2 text-sm font-bold text-primary-700">{scorePercent(item.score, whatIfProfile)}% совпадение</p>
+              {(() => {
+                const baseline = scored.find((candidate) => candidate.program.id === item.program.id)
+                const delta = baseline ? item.score - baseline.score : 0
+                return <p className="mt-1 text-xs text-slate-500">изменение модели: {delta === 0 ? 'без изменений' : `${delta > 0 ? '+' : ''}${delta.toFixed(1)} балла`}</p>
+              })()}
+            </div>
+          ))}
+        </div>
+        <p className="mt-3 text-xs text-slate-500">В этом сценарии roadmap содержит {whatIfRoadmap.length} шагов{whatIfRoadmap.some((step) => step.id === 'prep-year') ? ' и подготовительный год Hazırlık' : ''}. Процент оценочный и не гарантирует поступление. Для постоянного изменения вернитесь в анкету.</p>
+      </section>
+
+      {recommendationBrief.items.length > 0 && (
+        <section className="mt-4 rounded-2xl border border-accent-200 bg-gradient-to-br from-accent-50 to-white p-5" aria-label="AI-рекомендация">
+          <div className="flex flex-wrap items-center gap-2">
+            <h2 className="text-base font-bold text-slate-900">AI-рекомендация по твоему профилю</h2>
+          </div>
+          <p className="mt-2 text-sm leading-6 text-slate-700">{recommendationBrief.text}</p>
+          <div className="mt-4 grid gap-3">
+            {recommendationBrief.items.map((item) => {
+              const selected = compare.includes(item.id)
+              return (
+                <div key={item.id} className="rounded-xl bg-white/80 border border-white p-3">
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
+                    <div className="min-w-0">
+                      <h3 className="font-semibold text-slate-900">{item.title}</h3>
+                      <p className="mt-1 text-sm leading-6 text-slate-600">{item.text}</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => toggleCompare(item.id)}
+                      className={`shrink-0 rounded-lg border px-3 py-2 text-xs font-semibold transition ${selected ? 'border-primary-300 bg-primary-50 text-primary-700' : 'border-slate-200 bg-white text-slate-600 hover:border-primary-300 hover:text-primary-700'}`}
+                      aria-pressed={selected}
+                    >
+                      {selected ? '✓ В сравнении' : 'Добавить в сравнение'}
+                    </button>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+          {compare.length > 0 && (
+            <div className="mt-4 flex flex-wrap items-center gap-3 rounded-xl border border-primary-200 bg-primary-50/70 px-3 py-2 text-sm text-primary-800" role="status" aria-live="polite">
+              <span>{compareNotice || `В сравнении: ${compare.length} из 2 вариантов.`}</span>
+              <Link to={`/compare?ids=${compare.join(',')}`} className="font-semibold underline underline-offset-2 hover:text-primary-950">
+                Открыть Compare →
+              </Link>
+            </div>
+          )}
+        </section>
+      )}
 
       {/* Поиск и фильтры */}
       <div className="mt-4 card p-4 grid gap-3 md:grid-cols-[1fr_auto]">
@@ -316,6 +423,7 @@ export default function Recommendations() {
               key={rec.program.id}
               rec={rec}
               rank={sort === 'match' && !hasActiveFilters ? i + 1 : undefined}
+              profile={profile}
               fav={favs.includes(rec.program.id)}
               onFav={() => toggleFav(rec.program.id)}
               compareSelected={compare.includes(rec.program.id)}

@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="FURIA">
+  <rect width="64" height="64" rx="16" fill="#0f172a"/>
+  <path fill="#fff" d="M8 49 15 15l12-9 10 8 10-8 12 9 7 34-17-11-12 18-12-18L8 49Zm19-22 10-7 10 7-10 5-10-5Z"/>
+  <path fill="#1d9e75" d="m25 18 8-6 4 3-8 8-4-5Zm22 0-8-6-4 3 8 8 4-5Z"/>
+</svg>

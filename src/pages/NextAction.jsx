@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { useProfile } from '../context/ProfileContext.jsx'
+import { useProfile } from '../context/useProfile.js'
 import { formatMonth, getNextAction } from '../engine/roadmap.js'
 import { getFearAccent } from '../data/fearModes.js'
 import { ProgressRing } from '../components/Badges.jsx'

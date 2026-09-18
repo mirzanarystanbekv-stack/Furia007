@@ -1,10 +1,10 @@
 // Смоук-тест движка: запускается через esbuild bundle:
 // npx esbuild tests/smoke-entry.mjs --bundle --format=esm --outfile=tests/.smoke.mjs && node tests/.smoke.mjs
-import { scoreAllPrograms, diagnose, estimateChance, programScholarships, PROGRAMS } from '../src/engine/scoring.js'
-import { buildRoadmap, getNextAction } from '../src/engine/roadmap.js'
+import { buildPortfolioActions, scoreAllPrograms, scorePercent, diagnose, estimateChance, programScholarships, PROGRAMS, SCORING_RULES } from '../src/engine/scoring.js'
+import { buildRoadmap, buildRoadmapCalendar, getNextAction } from '../src/engine/roadmap.js'
 import { getFearAccent, buildDocsChecklist } from '../src/data/fearModes.js'
 import { FIELDS, COUNTRIES, SCHOLARSHIPS } from '../src/data/options.js'
-import { buildGroundedExplanation, filterByNaturalQuery, parseNaturalQuery, requestGroundedExplanation } from '../src/engine/aiAssist.js'
+import { buildGroundedExplanation, buildRecommendationBrief, filterByNaturalQuery, parseNaturalQuery, requestGroundedExplanation } from '../src/engine/aiAssist.js'
 
 const profile = {
   grade: 11, field: ['it'], countries: ['Турция', 'Казахстан'], gpa: 4.85,
@@ -24,6 +24,7 @@ const assert = (cond, msg) => {
 // 1. Базовый профиль: минимум 3 рекомендации
 const scored = scoreAllPrograms(profile)
 assert(scored.length >= 3, `демо-профиль даёт ${scored.length} программ (нужно >=3)`)
+assert(SCORING_RULES.map((rule) => rule.points).join(',') === '30,25,20,15,10,5', 'интерфейсная формула скоринга совпадает со спецификацией')
 assert(scored[0].score > 0 && scored[0].reasons.length > 0, 'у топ-программы есть скор и причины')
 
 // 2. Реактивность: смена вводных меняет баллы и причины. Контрастная программа —
@@ -60,6 +61,10 @@ assert(Math.abs(kbtuG - kbtuP) < 1e-9, 'платная «грантовая» (K
 const steps = buildRoadmap(profile, scored)
 assert(steps.length >= 5, `roadmap содержит ${steps.length} шагов (нужно >=5)`)
 assert(steps.every((s, i) => i === 0 || steps[i - 1].month <= s.month), 'шаги отсортированы по датам')
+const calendar = buildRoadmapCalendar(steps)
+assert(calendar.startsWith('BEGIN:VCALENDAR') && calendar.includes('BEGIN:VEVENT') && calendar.includes('DTSTART;VALUE=DATE:'),
+  'roadmap экспортируется в календарь с событиями')
+assert(calendar.includes('точную дату проверьте'), 'календарь честно помечает месячные ориентиры')
 assert(Boolean(getNextAction(steps, []).title), 'next action определён')
 const withDone = getNextAction(steps, [steps[0].id])
 assert(withDone && withDone.id !== steps[0].id, 'отмеченный шаг пропускается в next action')
@@ -206,13 +211,21 @@ assert(PROGRAMS.filter((p) => p.verified).every((p) => typeof p.source === 'stri
   'каждая verified-программа имеет официальный source URL')
 
 // 20. Оценка шансов (§8): top-3 → проценты от базового порога, уровни и вердикт
-const chance = estimateChance(scored)
+const chance = estimateChance(scored, profile)
 assert(chance.top.length === 3, `шансы считаются по топ-3 (получено ${chance.top.length})`)
-assert(chance.top.every((t) => t.percent > 0 && t.percent <= 99), `проценты в диапазоне (1..99): ${chance.top.map((t) => t.percent).join('/')}`)
+assert(chance.top.every((t) => t.percent > 0 && t.percent <= 100), `проценты в диапазоне (1..100): ${chance.top.map((t) => t.percent).join('/')}`)
 assert(Math.round(chance.top.reduce((s, x) => s + x.percent, 0) / 3) === chance.avg, 'avg — среднее процентов топ-3')
 assert(['высокие', 'хорошие', 'средние', 'требуют усиления'].includes(chance.level), `уровень из шкалы (${chance.level})`)
 assert(chance.verdict.length > 10 && ['высокие', 'хорошие', 'средние', 'требуют усиления'].some((l) => chance.level === l), 'вердикт непустой для уровня')
-const weakChance = estimateChance(scoreAllPrograms({ ...poor, field: ['it'], countries: ['ОАЭ'], budget: 'low', ielts: 0, target_lang_level: '' }))
+assert(chance.reasons.length >= 3 && chance.reasons.every((reason) => typeof reason === 'string'), 'оценка шансов объясняет причины человеческим языком')
+const demoPercentages = scored.slice(0, 8).map((item) => scorePercent(item.score, profile))
+assert(demoPercentages.every((percent) => percent >= 0 && percent <= 100), `процент совпадения в диапазоне 0..100: ${demoPercentages.join('/')}`)
+assert(new Set(demoPercentages).size > 1 && !demoPercentages.every((percent) => percent === 99), `проценты различают программы, а не фиксированы на 99: ${demoPercentages.join('/')}`)
+const strongestMatch = scored.find((item) => item.program.id === 'metu-ceng')
+assert(scorePercent(strongestMatch.score, profile) === 100, 'максимально совпадающая программа получает 100%, а не искусственные 99%')
+assert(buildPortfolioActions(profile).length >= 2 && buildPortfolioActions(profile).every((action) => action.title && action.text), 'портфолио предлагает конкретные действия под направление')
+const weakProfile = { ...poor, field: ['it'], countries: ['ОАЭ'], budget: 'low', ielts: 0, target_lang_level: '' }
+const weakChance = estimateChance(scoreAllPrograms(weakProfile), weakProfile)
 assert(weakChance.avg < chance.avg, `слабый профиль даёт ниже проценты (${weakChance.avg} < ${chance.avg})`)
 
 // 21. Стипендии (§8): распознавание именных грантов в scholarship-поле
@@ -252,6 +265,15 @@ const rejectedAi = await requestGroundedExplanation({
 })
 assert(rejectedAi.mode === 'rule-based' && rejectedAi.text === grounded.text,
   'AI-ответ с недопустимыми reason indexes отклоняется без выдуманных полей')
+const brief = buildRecommendationBrief(scored)
+const firstBriefUniversity = brief.items[0].title.slice(3).split(' — ')[0]
+assert(brief.items.length === 3 && brief.text.includes(firstBriefUniversity),
+  'AI-рекомендация пишет связный ответ по топ-3 вузам')
+assert(brief.items.every((item) => item.text.includes('проверить') || item.text.includes('источник')),
+  'текст AI-рекомендации содержит честный статус источника без выдуманных фактов')
+const singleBrief = buildRecommendationBrief([scored[0]])
+assert(singleBrief.text.includes('единственный вариант') && !singleBrief.text.includes('ещё 0'),
+  'AI-рекомендация корректно описывает выдачу из одного варианта')
 
 console.log('')
 console.log('Итог: смоук-тест завершён, exit code =', process.exitCode ?? 0)

@@ -184,6 +184,34 @@ export function filterByNaturalQuery(recommendations, intent) {
   return recommendations.filter((recommendation) => matchesNaturalQuery(recommendation, intent))
 }
 
+export function buildRecommendationBrief(recommendations) {
+  const candidates = recommendations.filter((recommendation) => !recommendation.outsideChoice).slice(0, 3)
+  const pool = candidates.length >= 3 ? candidates : recommendations.slice(0, 3)
+  if (!pool.length) return { text: '', items: [] }
+
+  const items = pool.map((recommendation, index) => {
+    const program = recommendation.program
+    const reasons = recommendation.reasons
+      .filter((reason) => reason.points > 0)
+      .slice(0, 3)
+      .map((reason) => reason.reason)
+    const status = program.verified && program.source
+      ? 'Есть официальный источник для проверки.'
+      : 'Данные демонстрационные — стоимость, дедлайн и условия нужно проверить на сайте вуза.'
+    return {
+      id: program.id,
+      title: `${index + 1}. ${program.university} — ${program.program}`,
+      text: `${reasons.join(' ')} ${status}`.trim(),
+    }
+  })
+
+  const text = pool.length > 1
+    ? `По твоему профилю я бы начал с ${pool[0].program.university}. Ниже — ещё ${pool.length - 1} варианта, которые лучше всего совпали с твоими вводными.`
+    : `По твоему профилю я бы начал с ${pool[0].program.university}. Это единственный вариант, который сейчас соответствует выбранным фильтрам.`
+
+  return { text, items }
+}
+
 export function buildGroundedExplanation(recommendation, reasonIndexes) {
   const program = recommendation.program
   const validIndexes = unique((Array.isArray(reasonIndexes) ? reasonIndexes : [])

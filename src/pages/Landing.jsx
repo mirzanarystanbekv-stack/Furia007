@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { useProfile } from '../context/ProfileContext.jsx'
+import { useProfile } from '../context/useProfile.js'
 
 const FEATURES = [
   { icon: '01', title: 'Профиль → сигнал', text: '8 коротких вопросов превращаются в понятную картину целей, ограничений и сильных сторон.' },
@@ -15,10 +15,10 @@ const TESTIMONIALS = [
 ]
 
 const ROUTE_STEPS = [
-  { label: 'Профиль', text: '8 вопросов', state: 'done' },
-  { label: 'Диагностика', text: 'ваши сильные стороны', state: 'done' },
-  { label: 'Рекомендации', text: '123 программы', state: 'active' },
-  { label: 'Roadmap', text: 'следующий шаг', state: 'next' },
+  { label: 'Профиль', text: '8 вопросов', state: 'done', to: '/profile' },
+  { label: 'Диагностика', text: 'ваши сильные стороны', state: 'done', to: '/diagnostics' },
+  { label: 'Рекомендации', text: '123 программы', state: 'active', to: '/recommendations' },
+  { label: 'Roadmap', text: 'следующий шаг', state: 'next', to: '/roadmap' },
 ]
 
 export default function Landing() {
@@ -26,7 +26,6 @@ export default function Landing() {
 
   return (
     <div className="bg-slate-950 text-white overflow-hidden">
-      {/* Hero: CSS-анимация заменяет внешний video-asset, поэтому офлайн-сборка остаётся автономной. */}
       <section className="relative min-h-[680px] flex items-center">
         <div className="absolute inset-0 pointer-events-none" aria-hidden="true">
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_15%_20%,rgba(29,158,117,0.24),transparent_34%),radial-gradient(circle_at_85%_15%,rgba(58,130,246,0.2),transparent_32%),linear-gradient(135deg,#07131d_0%,#0b1724_52%,#101629_100%)]" />
@@ -38,10 +37,6 @@ export default function Landing() {
         <div className="relative z-10 max-w-6xl mx-auto w-full px-4 py-16 sm:py-24">
           <div className="grid lg:grid-cols-[1.02fr_0.98fr] gap-12 items-center">
             <div>
-              <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-3 py-1.5 text-xs text-slate-300 backdrop-blur">
-                <span className="h-1.5 w-1.5 rounded-full bg-primary-400 shadow-[0_0_12px_3px_rgba(29,158,117,0.7)]" />
-                LOCUS 2026 · кейс №2
-              </div>
               <h1 className="mt-6 max-w-3xl text-4xl font-semibold leading-[1.08] tracking-tight text-white sm:text-6xl">
                 МаршрутПоступления
                 <span className="block bg-gradient-to-r from-primary-300 via-cyan-200 to-blue-300 bg-clip-text text-transparent">делает первый экран конкретным.</span>
@@ -57,11 +52,6 @@ export default function Landing() {
                 <Link to={user ? '/next' : '/auth'} className="btn !rounded-xl !border !border-white/15 !bg-white/5 !px-6 !py-3.5 !text-base !text-slate-200 hover:!bg-white/10">
                   {user ? 'Продолжить маршрут' : 'Создать аккаунт'}
                 </Link>
-              </div>
-              <div className="mt-6 flex flex-wrap gap-x-5 gap-y-2 text-xs text-slate-400">
-                <span>✓ rule-based и прозрачно</span>
-                <span>✓ работает офлайн</span>
-                <span>✓ данные остаются в браузере</span>
               </div>
             </div>
 
@@ -79,7 +69,12 @@ export default function Landing() {
                   <p className="mt-3 text-[11px] text-amber-200/90">Демо-превью — не персональный расчёт</p>
                   <div className="mt-6 space-y-4">
                     {ROUTE_STEPS.map((step, index) => (
-                      <div key={step.label} className="flex items-center gap-3">
+                      <Link
+                        key={step.label}
+                        to={step.to}
+                        className="flex items-center gap-3 rounded-xl transition hover:bg-white/5 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-300"
+                        aria-label={`Открыть раздел: ${step.label}`}
+                      >
                         <div className={`relative flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-xs font-bold ${step.state === 'active' ? 'bg-primary-400 text-slate-950 shadow-[0_0_20px_rgba(52,211,153,0.45)]' : step.state === 'done' ? 'bg-white/15 text-primary-200' : 'bg-white/5 text-slate-500'}`}>
                           {step.state === 'done' ? '✓' : index + 1}
                         </div>
@@ -90,14 +85,22 @@ export default function Landing() {
                           </div>
                           <p className="mt-1 text-xs text-slate-500">{step.text}</p>
                         </div>
-                      </div>
+                      </Link>
                     ))}
                   </div>
                   <div className="mt-6 rounded-xl border border-primary-400/20 bg-primary-400/10 p-4">
                     <div className="flex items-start justify-between gap-4">
                       <div>
                         <p className="text-[10px] uppercase tracking-[0.16em] text-primary-300">next action</p>
-                        <p className="mt-1 text-sm font-medium text-white">Проверить требования IELTS</p>
+                        <a
+                          href="https://ielts.org/take-a-test"
+                          target="_blank"
+                          rel="noreferrer"
+                          className="mt-1 inline-flex items-center gap-2 text-sm font-medium text-white underline decoration-primary-300/70 underline-offset-4 hover:text-primary-200"
+                          aria-label="Открыть официальную страницу IELTS в новой вкладке"
+                        >
+                          Проверить требования IELTS <span aria-hidden="true">↗</span>
+                        </a>
                       </div>
                       <span className="text-lg text-primary-300">→</span>
                     </div>
@@ -200,7 +203,7 @@ export default function Landing() {
               <li>✓ рекомендации и сравнение</li>
               <li>✓ Roadmap и Next Action</li>
             </ul>
-            <Link to="/profile" className="btn-primary mt-6 w-full !bg-primary-500 !text-white hover:!bg-primary-400">Открыть Data Route ↗</Link>
+            <Link to="/profile" className="btn-primary mt-6 w-full !bg-primary-500 !text-white hover:!bg-primary-400">Открыть маршрут ↗</Link>
           </div>
         </div>
       </section>

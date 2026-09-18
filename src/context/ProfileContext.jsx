@@ -1,9 +1,9 @@
-import { createContext, useContext, useEffect, useMemo, useState } from 'react'
+import { createContext, useEffect, useMemo, useState } from 'react'
 import { DEMO_PROFILE } from '../data/options.js'
 import { scoreAllPrograms } from '../engine/scoring.js'
 import { buildRoadmap } from '../engine/roadmap.js'
 
-const ProfileContext = createContext(null)
+export const ProfileContext = createContext(null)
 
 const LS_PROFILE_KEY = 'locus.profile.v1'
 const LS_DONE_KEY = 'locus.doneSteps.v1'
@@ -135,10 +135,4 @@ export function ProfileProvider({ children }) {
   )
 
   return <ProfileContext.Provider value={value}>{children}</ProfileContext.Provider>
-}
-
-export function useProfile() {
-  const ctx = useContext(ProfileContext)
-  if (!ctx) throw new Error('useProfile must be used within ProfileProvider')
-  return ctx
 }

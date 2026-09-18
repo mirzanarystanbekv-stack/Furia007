@@ -18,6 +18,53 @@ export function formatMonth(ymStr) {
   return `${MONTHS_RU[m - 1]} ${y}`
 }
 
+function escapeIcsText(value) {
+  return String(value ?? '')
+    .replace(/\\/g, '\\\\')
+    .replace(/;/g, '\\;')
+    .replace(/,/g, '\\,')
+    .replace(/\r?\n/g, '\\n')
+}
+
+export function buildRoadmapCalendar(steps, calendarName = 'Мой roadmap поступления') {
+  const stamp = new Date().toISOString().replace(/[-:]/g, '').replace(/\.\d{3}Z$/, 'Z')
+  const events = steps.map((step) => {
+    const [year, month] = String(step.month).split('-').map(Number)
+    const nextYear = month === 12 ? year + 1 : year
+    const nextMonth = month === 12 ? 1 : month + 1
+    const start = `${year}${String(month).padStart(2, '0')}01`
+    const end = `${nextYear}${String(nextMonth).padStart(2, '0')}01`
+    const description = [
+      `Ориентир на ${formatMonth(step.month)} — точную дату проверьте в официальном источнике.`,
+      step.desc,
+      step.source ? `Источник: ${step.source}` : '',
+    ].filter(Boolean).join(' ')
+
+    return [
+      'BEGIN:VEVENT',
+      `UID:roadmap-${escapeIcsText(step.id)}@marshrut-postupleniya.local`,
+      `DTSTAMP:${stamp}`,
+      `DTSTART;VALUE=DATE:${start}`,
+      `DTEND;VALUE=DATE:${end}`,
+      `SUMMARY:${escapeIcsText(step.title)}`,
+      `DESCRIPTION:${escapeIcsText(description)}`,
+      'END:VEVENT',
+    ].join('\r\n')
+  })
+
+  return [
+    'BEGIN:VCALENDAR',
+    'VERSION:2.0',
+    'PRODID:-//Marshrut Postupleniya//Roadmap//RU',
+    `X-WR-CALNAME:${escapeIcsText(calendarName)}`,
+    'CALSCALE:GREGORIAN',
+    'METHOD:PUBLISH',
+    events.join('\r\n'),
+    'END:VCALENDAR',
+    '',
+  ].join('\r\n')
+}
+
 // Возвращает массив шагов { id, title, desc, month, kind, source }
 export function buildRoadmap(profile, scoredPrograms) {
   const now = getNow()

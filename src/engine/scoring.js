@@ -14,6 +14,15 @@ export const PROGRAMS = [...programsData.programs, ...expandedProgramsData.progr
 export const MAX_BASE_SCORE = 30 + 25 + 20 + 15 + 10 // 100 — базовый порог без бонуса за достижения;
 // реальные скоры выше из-за множителей (грант-буст, класс)
 
+export const SCORING_RULES = [
+  { label: 'Направление совпадает', points: 30 },
+  { label: 'Целевая страна', points: 25 },
+  { label: 'Язык соответствует порогу', points: 20 },
+  { label: 'Бюджет укладывается', points: 15 },
+  { label: 'Дедлайн впереди', points: 10 },
+  { label: 'Достижения для грантовой программы', points: 5 },
+]
+
 const GRANT_MULTIPLIER = 1.15
 const CREDIT_YEAR_MULTIPLIERS = { 9: 1.0, 10: 1.05, 11: 1.1 }
 
@@ -184,18 +193,29 @@ export function programScholarships(program) {
   return SCHOLARSHIPS.filter((s) => scholarship.includes(s.match)).map((s) => s.id)
 }
 
-// Перевод модельного score в процент для бейджей и диагностики.
-export function scorePercent(score) {
-  return Math.min(99, Math.round((score / MAX_BASE_SCORE) * 100))
+// Максимально возможный score для текущих вводных: учитываем достижимость
+// бонуса за класс, достижения и грантовый приоритет, но не выдаём процент выше 100.
+export function maxScoreForProfile(profile = {}) {
+  const achievementMax = profile.achievements ? 5 : 0
+  const yearMultiplier = CREDIT_YEAR_MULTIPLIERS[profile.grade] ?? 1
+  const grantMultiplier = profile.priority === 'grant' ? GRANT_MULTIPLIER : 1
+  return (MAX_BASE_SCORE + achievementMax) * yearMultiplier * grantMultiplier
+}
+
+// Процент совпадения — доля score от максимума для тех же вводных.
+// Поэтому сильные и слабые программы получают разные значения, а не общий cap 99.
+export function scorePercent(score, profile = {}) {
+  if (!Number.isFinite(score) || score <= 0) return 0
+  return Math.min(100, Math.max(0, Math.round((score / maxScoreForProfile(profile)) * 100)))
 }
 
 // «Оценка шансов» (§8): среднее top-3 score → проценты.
 // Это перевод модельного скоринга, а не вероятность приёма.
-export function estimateChance(scored) {
+export function estimateChance(scored, profile = {}) {
   const top = scored.slice(0, 3).map((r) => ({
     id: r.program.id,
     university: r.program.university,
-    percent: scorePercent(r.score),
+    percent: scorePercent(r.score, profile),
   }))
   const avg = top.length ? Math.round(top.reduce((s, x) => s + x.percent, 0) / top.length) : 0
   const level =
@@ -207,7 +227,34 @@ export function estimateChance(scored) {
     avg >= 65 ? 'Хорошие вводные: пара целевых усилений (язык, GPA) поднимет шансы на топ-гранты.' :
     avg >= 45 ? 'Шансы средние: сфокусируйтесь на 2–3 реалистичных вариантах и закройте слабые места из рисков.' :
     'Пока сложно — расширьте список стран или бюджет, усильте язык и экзамены.'
-  return { top, avg, level, verdict }
+
+  const reasons = []
+  if ((Number(profile.ielts) || 0) >= 6.5) reasons.push('IELTS 6.5+ закрывает языковой порог большинства показанных программ.')
+  else if ((Number(profile.ielts) || 0) >= 6) reasons.push('IELTS подходит для части программ; для некоторых топовых вариантов нужен более высокий порог.')
+  else reasons.push('Нужно усилить IELTS: языковой порог ограничивает часть программ и может добавить Hazırlık.')
+  if ((Number(profile.gpa) || 0) >= 4.5) reasons.push('Высокий GPA поддерживает заявки на гранты — это модельная оценка, не гарантия.')
+  else reasons.push('Ещё один сильный академический результат или проект улучшит грантовую заявку.')
+  if (profile.achievements) reasons.push('Достижения уже добавляют аргумент к грантовым заявкам.')
+  else reasons.push('Не хватает подтверждённого проекта или олимпиады для усиления портфолио.')
+  if (profile.budget === 'low') reasons.push('Низкий бюджет сужает выбор до бесплатных и грантовых вариантов.')
+  return { top, avg, level, verdict, reasons }
+}
+
+export function buildPortfolioActions(profile = {}) {
+  const fields = fieldList(profile)
+  const actions = []
+  if (fields.includes('it') || fields.includes('data-science') || fields.includes('cybersecurity')) {
+    actions.push({ id: 'portfolio-project', title: 'Собрать практический проект', text: 'Опубликовать рабочий проект на GitHub и добавить короткое описание своей роли и результата.' })
+    actions.push({ id: 'portfolio-hackathon', title: 'Участвовать в хакатоне', text: 'Выбрать хакатон по AI, данным или разработке и сохранить ссылку на результат команды.' })
+  } else if (fields.includes('medicine') || fields.includes('dentistry') || fields.includes('pharmacy')) {
+    actions.push({ id: 'portfolio-research', title: 'Добавить мини-исследование', text: 'Оформить обзор по выбранной медицинской теме с источниками и выводом.' })
+    actions.push({ id: 'portfolio-volunteer', title: 'Получить профильный опыт', text: 'Найти подтверждённое волонтёрство или практику и зафиксировать, чему вы научились.' })
+  } else {
+    actions.push({ id: 'portfolio-project', title: 'Сделать профильный мини-проект', text: 'Подготовить работу по выбранному направлению с понятным результатом и ссылкой на материалы.' })
+    actions.push({ id: 'portfolio-activity', title: 'Добавить профильную активность', text: 'Выбрать олимпиаду, конкурс, клуб или волонтёрство и сохранить подтверждение участия.' })
+  }
+  if (!profile.achievements) actions.push({ id: 'portfolio-proof', title: 'Собрать подтверждения', text: 'Сохранить сертификаты, рекомендации и описание результата каждого достижения в одной папке.' })
+  return actions.slice(0, 3)
 }
 
 // Диагностика профиля: сильные стороны, цель, риски

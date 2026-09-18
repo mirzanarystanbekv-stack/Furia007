@@ -1,6 +1,7 @@
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { useProfile } from '../context/ProfileContext.jsx'
-import { formatMonth } from '../engine/roadmap.js'
+import { useProfile } from '../context/useProfile.js'
+import { buildRoadmapCalendar, formatMonth } from '../engine/roadmap.js'
 import { getFearAccent, buildDocsChecklist } from '../data/fearModes.js'
 import { ProgressRing } from '../components/Badges.jsx'
 
@@ -16,6 +17,17 @@ const KIND_STYLES = {
 export default function RoadmapPage() {
   const { profile, scored, roadmap, doneIds, toggleDone, hasProfile, progress } = useProfile()
   const fear = getFearAccent(profile.fear)
+  const [copyStatus, setCopyStatus] = useState('')
+
+  const downloadCalendar = () => {
+    const file = new Blob([buildRoadmapCalendar(roadmap)], { type: 'text/calendar;charset=utf-8' })
+    const url = URL.createObjectURL(file)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = 'moj-roadmap-postupleniya.ics'
+    link.click()
+    URL.revokeObjectURL(url)
+  }
 
   if (!hasProfile || roadmap.length === 0) {
     return (
@@ -30,15 +42,45 @@ export default function RoadmapPage() {
   const sorted = fear.order ? [...roadmap].sort(fear.order) : roadmap
   const docsItems = fear.id === 'documents' ? buildDocsChecklist(scored) : null
 
+  const copyRoadmap = async () => {
+    if (!navigator.clipboard?.writeText) {
+      setCopyStatus('error')
+      return
+    }
+    const text = sorted
+      .map((step) => `${formatMonth(step.month)} — ${step.title}\n${step.desc}${step.source ? `\n${step.source}` : ''}`)
+      .join('\n\n')
+    setCopyStatus('copying')
+    try {
+      await navigator.clipboard.writeText(text)
+      setCopyStatus('copied')
+    } catch {
+      setCopyStatus('error')
+    }
+  }
+
   return (
     <div className="max-w-4xl mx-auto px-4 py-10">
       <div className="flex items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold text-slate-900">Ваш Roadmap</h1>
           <p className="text-sm text-slate-500 mt-1">Пошаговый план до зачисления — отмечайте выполненное</p>
-          <button type="button" onClick={() => window.print()} className="btn-ghost text-xs mt-2">
-            🖨 Распечатать план
-          </button>
+          <div className="mt-2 flex flex-wrap gap-2">
+            <button type="button" onClick={() => window.print()} className="btn-ghost text-xs">
+              🖨 Распечатать план
+            </button>
+            <button type="button" onClick={downloadCalendar} className="btn-secondary text-xs">
+              📅 Скачать календарь (.ics)
+            </button>
+            <button
+              type="button"
+              onClick={copyRoadmap}
+              disabled={copyStatus === 'copying'}
+              className="btn-secondary text-xs"
+            >
+              {copyStatus === 'copied' ? '✓ План скопирован' : copyStatus === 'error' ? 'Не удалось скопировать' : '📋 Скопировать план'}
+            </button>
+          </div>
         </div>
         <ProgressRing value={progress} />
       </div>
@@ -93,9 +135,18 @@ export default function RoadmapPage() {
                     📅 {formatMonth(step.month)}
                   </span>
                   <span className="rounded-full bg-slate-100 text-slate-500 px-2 py-0.5">{st.label}</span>
-                  {step.source && (
-                    <span className="text-slate-400 italic">{step.source}</span>
-                  )}
+                  {step.source && (() => {
+                    const sourceUrl = step.source.match(/https?:\/\/[^\s]+/)?.[0]
+                    return (
+                      <span className="text-slate-400 italic">
+                        {sourceUrl ? (
+                          <a href={sourceUrl} target="_blank" rel="noreferrer" className="text-primary-600 underline underline-offset-2 hover:text-primary-800">
+                            Проверить официальный источник ↗
+                          </a>
+                        ) : step.source}
+                      </span>
+                    )
+                  })()}
                 </div>
               </div>
             </li>

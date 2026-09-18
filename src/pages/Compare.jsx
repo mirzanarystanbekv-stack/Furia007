@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
-import { useProfile } from '../context/ProfileContext.jsx'
+import { useProfile } from '../context/useProfile.js'
 import { VerifiedBadge, DemoBadge } from '../components/Badges.jsx'
 
 const ROWS = [

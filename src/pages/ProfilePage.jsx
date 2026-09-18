@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { useProfile } from '../context/ProfileContext.jsx'
+import { useProfile } from '../context/useProfile.js'
 import { GRADES, FIELDS, COUNTRIES, TARGET_LANGUAGES, BUDGETS, PRIORITIES, FEARS } from '../data/options.js'
 
 function Choice({ options, value, onChange, columns = 1 }) {
@@ -236,9 +236,19 @@ export default function ProfilePage() {
           <span className={`text-sm ${filled ? 'text-primary-600' : 'text-slate-400'}`}>
             {filled ? '✓ Профиль заполнен — можно смотреть диагностику' : 'Заполните класс, направление и хотя бы одну страну'}
           </span>
-          <Link to="/diagnostics" className={`btn-primary ${filled ? '' : 'opacity-50 pointer-events-none'}`}>
-            Далее: Диагностика →
-          </Link>
+          {filled ? (
+            <Link to="/diagnostics" className="btn-primary">
+              Далее: Диагностика →
+            </Link>
+          ) : (
+            <span
+              className="btn-primary cursor-not-allowed opacity-50"
+              aria-disabled="true"
+              title="Заполните класс, направление и хотя бы одну страну"
+            >
+              Далее: Диагностика →
+            </span>
+          )}
         </div>
       </form>
     </div>
