@@ -9,13 +9,18 @@ import {
   parseNaturalQuery,
   requestGroundedExplanation,
 } from '../engine/aiAssist.js'
-import { VerifiedBadge, DemoBadge } from '../components/Badges.jsx'
 import { FIELDS, COUNTRIES, SCHOLARSHIPS } from '../data/options.js'
 
 const SORTS = [
   { value: 'match', label: 'По совпадению' },
   { value: 'cheap', label: 'Сначала дешёвые' },
   { value: 'deadline', label: 'Ближе дедлайн' },
+]
+
+const QUICK_BUDGETS = [
+  { value: 'low', label: 'низкий' },
+  { value: 'mid', label: 'средний' },
+  { value: 'high', label: 'высокий' },
 ]
 
 function ProgramCard({ rec, rank, profile, fav, onFav, compareSelected, onCompare, explanation, explanationLoading, onExplain }) {
@@ -38,8 +43,8 @@ function ProgramCard({ rec, rank, profile, fav, onFav, compareSelected, onCompar
             >
               {fav ? '★' : '☆'}
             </button>
-            {/* Бейдж совпадения (§6 ТЗ): score → % от базового порога, всегда
-                с пометкой «оценочно» — скоринг модельный, не гарантия поступления */}
+            {/* Бейдж совпадения: доля набранных баллов от максимума для текущего профиля.
+                Это модельный показатель, не гарантия поступления. */}
             <span
               className="rounded-full bg-primary-50 border border-primary-200 px-2 py-0.5 text-[11px] font-bold text-primary-700"
               title={`Совпадение ${scorePercent(rec.score, profile)}% от максимума для этих вводных — оценка, не гарантия поступления`}
@@ -56,7 +61,14 @@ function ProgramCard({ rec, rank, profile, fav, onFav, compareSelected, onCompar
             вне выбранных стран — альтернатива
           </span>
         )}
-        {p.verified ? <VerifiedBadge source={p.source} /> : <DemoBadge />}
+        <span
+          className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-semibold ${p.verified ? 'border-primary-200 bg-primary-50 text-primary-700' : 'border-warning-200 bg-warning-50 text-warning-700'}`}
+          aria-label={p.verified ? 'Статус данных: Проверено' : 'Статус данных: Демо-данные'}
+          title={p.verified ? `Проверено по официальному источнику: ${p.source}` : 'Демо-данные — перепроверьте стоимость и дедлайны на сайте вуза'}
+        >
+          <span aria-hidden="true">{p.verified ? '✓' : '!'}</span>
+          {p.verified ? 'Проверено' : 'Демо-данные'}
+        </span>
         <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] text-slate-600">язык: {p.language}</span>
         <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] text-slate-600">{p.admission_track}</span>
         {p.grant && <span className="rounded-full bg-primary-50 border border-primary-200 px-2 py-0.5 text-[11px] text-primary-700 font-semibold">грант возможен</span>}
@@ -106,7 +118,7 @@ function ProgramCard({ rec, rank, profile, fav, onFav, compareSelected, onCompar
         {explanation && (
           <div className="mt-3 rounded-lg bg-white/80 border border-primary-100 p-3 text-sm text-slate-700">
             <div className="text-[11px] font-bold uppercase tracking-wide text-primary-700">
-              {explanation.mode === 'ai-assisted' ? 'AI-assisted объяснение' : 'Локальное объяснение'}
+              {explanation.mode === 'ai-assisted' ? 'Расширенное объяснение' : 'Локальное объяснение'}
             </div>
             <p className="mt-1">{explanation.text}</p>
           </div>
@@ -136,9 +148,13 @@ function ProgramCard({ rec, rank, profile, fav, onFav, compareSelected, onCompar
 }
 
 export default function Recommendations() {
-  const { scored, hasProfile, profile, favs, toggleFav } = useProfile()
+  const { hasProfile, profile, favs, toggleFav } = useProfile()
   const navigate = useNavigate()
 
+  const [quickSettingsOpen, setQuickSettingsOpen] = useState(false)
+  const [quickCountries, setQuickCountries] = useState(profile.countries)
+  const [quickBudget, setQuickBudget] = useState(profile.budget || 'mid')
+  const [quickIelts, setQuickIelts] = useState(String(profile.ielts ?? ''))
   const [q, setQ] = useState('')
   const [smartQuery, setSmartQuery] = useState('')
   const [smartIntent, setSmartIntent] = useState(() => parseNaturalQuery(''))
@@ -176,12 +192,17 @@ export default function Recommendations() {
     setLimit(12)
   }
 
-  const whatIfProfile = useMemo(() => ({ ...profile, budget: whatIfBudget, ielts: whatIfIelts }), [profile, whatIfBudget, whatIfIelts])
+  const quickProfile = useMemo(
+    () => ({ ...profile, countries: quickCountries, budget: quickBudget, ielts: quickIelts }),
+    [profile, quickCountries, quickBudget, quickIelts],
+  )
+  const quickScored = useMemo(() => scoreAllPrograms(quickProfile), [quickProfile])
+  const whatIfProfile = useMemo(() => ({ ...quickProfile, budget: whatIfBudget, ielts: whatIfIelts }), [quickProfile, whatIfBudget, whatIfIelts])
   const whatIfScored = useMemo(() => scoreAllPrograms(whatIfProfile).slice(0, 3), [whatIfProfile])
   const whatIfRoadmap = useMemo(() => buildRoadmap(whatIfProfile, whatIfScored), [whatIfProfile, whatIfScored])
 
   const filtered = useMemo(() => {
-    let list = filterByNaturalQuery(scored, smartIntent)
+    let list = filterByNaturalQuery(quickScored, smartIntent)
     if (showFavs) list = list.filter((r) => favs.includes(r.program.id))
     const query = q.trim().toLowerCase()
     if (query) {
@@ -197,7 +218,7 @@ export default function Recommendations() {
     if (sort === 'cheap') sorted.sort((a, b) => (a.program.tuition_usd === null ? Infinity : a.program.tuition_usd ?? 0) - (b.program.tuition_usd === null ? Infinity : b.program.tuition_usd ?? 0))
     if (sort === 'deadline') sorted.sort((a, b) => (a.program.deadline_month === null ? Infinity : a.program.deadline_month ?? Infinity) - (b.program.deadline_month === null ? Infinity : b.program.deadline_month ?? Infinity))
     return sorted
-  }, [scored, smartIntent, favs, showFavs, q, fieldFilter, countryFilter, schFilter, maxCost, sort])
+  }, [quickScored, smartIntent, favs, showFavs, q, fieldFilter, countryFilter, schFilter, maxCost, sort])
 
   const explainRecommendation = async (rec) => {
     setExplanationLoading((current) => ({ ...current, [rec.program.id]: true }))
@@ -236,8 +257,10 @@ export default function Recommendations() {
   if (!hasProfile) {
     return (
       <div className="max-w-3xl mx-auto px-4 py-16 text-center">
-        <p className="text-slate-600">Сначала заполните анкету — рекомендации строятся из вашего профиля.</p>
-        <Link to="/profile" className="btn-primary mt-4">Заполнить анкету</Link>
+        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary-600">Персональный старт</p>
+        <h1 className="mt-3 text-2xl font-bold text-slate-900">Сначала соберём ваш маршрут</h1>
+        <p className="mx-auto mt-3 max-w-md text-sm leading-6 text-slate-600">Ответьте на 8 коротких вопросов — после этого появятся подходящие программы, сравнение и ближайший шаг.</p>
+        <Link to="/profile" className="btn-primary mt-6">Начать анкету <span aria-hidden="true">↗</span></Link>
       </div>
     )
   }
@@ -248,14 +271,57 @@ export default function Recommendations() {
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold text-slate-900">Ваши рекомендации</h1>
           <p className="text-sm text-slate-500 mt-1">
-            {scored.length} подходящих программ · приоритет: {profile.priority === 'grant' ? 'грант ≫ платное' : 'платное ок'} · интересов: {profile.field.length}
+            {quickScored.length} подходящих программ · приоритет: {profile.priority === 'grant' ? 'грант ≫ платное' : 'платное ок'} · интересов: {profile.field.length}
           </p>
         </div>
         <Link to="/profile" className="btn-secondary text-xs">Изменить вводные</Link>
       </div>
 
+      <section className="mt-4 card p-4 border-primary-200 bg-primary-50/30" aria-label="Быстрые настройки рекомендаций">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h2 className="text-sm font-bold text-slate-900">Быстрые настройки</h2>
+            <p className="mt-1 text-xs text-slate-500">Меняйте вводные здесь — сохранённая анкета останется без изменений.</p>
+          </div>
+          <button type="button" className="btn-secondary !px-3 !py-2 text-xs" onClick={() => setQuickSettingsOpen((open) => !open)} aria-expanded={quickSettingsOpen}>
+            {quickSettingsOpen ? 'Скрыть' : 'Изменить'}
+          </button>
+        </div>
+        <div className="mt-3 flex flex-wrap gap-2 text-xs text-slate-700">
+          <span className="rounded-full bg-white px-3 py-1.5 border border-slate-200">Страны: {quickCountries.length ? COUNTRIES.filter((country) => quickCountries.includes(country.value)).map((country) => country.label).join(', ') : 'не выбраны'}</span>
+          <span className="rounded-full bg-white px-3 py-1.5 border border-slate-200">Бюджет: {QUICK_BUDGETS.find((budget) => budget.value === quickBudget)?.label || 'не указан'}</span>
+          <span className="rounded-full bg-white px-3 py-1.5 border border-slate-200">IELTS / экзамен: {quickIelts || 'не указан'}</span>
+        </div>
+        {quickSettingsOpen && (
+          <div className="mt-4 grid gap-4 border-t border-primary-100 pt-4 sm:grid-cols-3">
+            <fieldset>
+              <legend className="text-xs font-semibold text-slate-700">Страны</legend>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {COUNTRIES.map((country) => {
+                  const selected = quickCountries.includes(country.value)
+                  return (
+                    <button key={country.value} type="button" onClick={() => setQuickCountries((current) => selected ? current.filter((value) => value !== country.value) : [...current, country.value])} className={`rounded-full border px-3 py-1.5 text-xs transition ${selected ? 'border-primary-500 bg-primary-600 text-white' : 'border-slate-200 bg-white text-slate-600 hover:border-primary-300'}`} aria-pressed={selected}>
+                      {country.label}
+                    </button>
+                  )
+                })}
+              </div>
+            </fieldset>
+            <label className="text-xs font-semibold text-slate-700">Бюджет
+              <select className="input mt-2" value={quickBudget} onChange={(event) => setQuickBudget(event.target.value)}>
+                {QUICK_BUDGETS.map((budget) => <option key={budget.value} value={budget.value}>{budget.label}</option>)}
+              </select>
+            </label>
+            <label className="text-xs font-semibold text-slate-700">IELTS / экзамен
+              <input className="input mt-2" type="number" min="0" max="9" step="0.5" value={quickIelts} onChange={(event) => setQuickIelts(event.target.value)} placeholder="например, 6.5" />
+            </label>
+          </div>
+        )}
+        <p className="mt-3 text-xs text-primary-700" role="status" aria-live="polite">Подборка и проценты пересчитываются сразу. Профиль сохранится только после изменения анкеты.</p>
+      </section>
+
       <form onSubmit={applySmartQuery} className="mt-6 card p-4">
-        <label className="text-sm font-semibold text-slate-700" htmlFor="smart-university-search">AI-помощник рекомендаций</label>
+        <label className="text-sm font-semibold text-slate-700" htmlFor="smart-university-search">Помощник по вузам</label>
         <div className="mt-2 flex flex-col sm:flex-row gap-2">
           <input
             id="smart-university-search"
@@ -267,7 +333,7 @@ export default function Recommendations() {
           />
           <button type="submit" className="btn-primary shrink-0">Найти в каталоге</button>
         </div>
-        <p className="mt-2 text-xs text-slate-500">Запрос разбирается локально, а рекомендации основаны на данных каталога. Если AI-сервис недоступен, используется локальный режим — без выдуманных цен и дедлайнов.</p>
+        <p className="mt-2 text-xs text-slate-500">Запрос разбирается локально, а рекомендации основаны на данных каталога. Если внешний сервис недоступен, используется локальный режим — без выдуманных цен и дедлайнов.</p>
         {smartIntent.summary.length > 0 && (
           <p className="mt-2 text-xs text-primary-700">Фильтры запроса: {smartIntent.summary.join(' · ')}</p>
         )}
@@ -301,7 +367,7 @@ export default function Recommendations() {
               <p className="mt-1 text-xs text-slate-500 truncate">{item.program.program}</p>
               <p className="mt-2 text-sm font-bold text-primary-700">{scorePercent(item.score, whatIfProfile)}% совпадение</p>
               {(() => {
-                const baseline = scored.find((candidate) => candidate.program.id === item.program.id)
+                const baseline = quickScored.find((candidate) => candidate.program.id === item.program.id)
                 const delta = baseline ? item.score - baseline.score : 0
                 return <p className="mt-1 text-xs text-slate-500">изменение модели: {delta === 0 ? 'без изменений' : `${delta > 0 ? '+' : ''}${delta.toFixed(1)} балла`}</p>
               })()}
@@ -312,9 +378,9 @@ export default function Recommendations() {
       </section>
 
       {recommendationBrief.items.length > 0 && (
-        <section className="mt-4 rounded-2xl border border-accent-200 bg-gradient-to-br from-accent-50 to-white p-5" aria-label="AI-рекомендация">
+        <section className="mt-4 rounded-2xl border border-accent-200 bg-gradient-to-br from-accent-50 to-white p-5" aria-label="Рекомендация по профилю">
           <div className="flex flex-wrap items-center gap-2">
-            <h2 className="text-base font-bold text-slate-900">AI-рекомендация по твоему профилю</h2>
+            <h2 className="text-base font-bold text-slate-900">Подбор по твоему профилю</h2>
           </div>
           <p className="mt-2 text-sm leading-6 text-slate-700">{recommendationBrief.text}</p>
           <div className="mt-4 grid gap-3">
@@ -423,7 +489,7 @@ export default function Recommendations() {
               key={rec.program.id}
               rec={rec}
               rank={sort === 'match' && !hasActiveFilters ? i + 1 : undefined}
-              profile={profile}
+              profile={quickProfile}
               fav={favs.includes(rec.program.id)}
               onFav={() => toggleFav(rec.program.id)}
               compareSelected={compare.includes(rec.program.id)}

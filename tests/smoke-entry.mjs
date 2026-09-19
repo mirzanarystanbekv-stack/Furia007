@@ -24,7 +24,7 @@ const assert = (cond, msg) => {
 // 1. Базовый профиль: минимум 3 рекомендации
 const scored = scoreAllPrograms(profile)
 assert(scored.length >= 3, `демо-профиль даёт ${scored.length} программ (нужно >=3)`)
-assert(SCORING_RULES.map((rule) => rule.points).join(',') === '30,25,20,15,10,5', 'интерфейсная формула скоринга совпадает со спецификацией')
+assert(SCORING_RULES.map((rule) => rule.points).join(',') === '30,25,20,15,10,5,5', 'интерфейсная формула скоринга совпадает с текущей моделью')
 assert(scored[0].score > 0 && scored[0].reasons.length > 0, 'у топ-программы есть скор и причины')
 
 // 2. Реактивность: смена вводных меняет баллы и причины. Контрастная программа —
@@ -223,6 +223,10 @@ assert(demoPercentages.every((percent) => percent >= 0 && percent <= 100), `пр
 assert(new Set(demoPercentages).size > 1 && !demoPercentages.every((percent) => percent === 99), `проценты различают программы, а не фиксированы на 99: ${demoPercentages.join('/')}`)
 const strongestMatch = scored.find((item) => item.program.id === 'metu-ceng')
 assert(scorePercent(strongestMatch.score, profile) === 100, 'максимально совпадающая программа получает 100%, а не искусственные 99%')
+const languageSensitive = scored.find((item) => item.program.id === 'bogazici-ceng')
+const weakerLanguageProfile = { ...profile, ielts: 0, achievements: false, gpa: 3.5 }
+const weakerLanguage = scoreAllPrograms(weakerLanguageProfile).find((item) => item.program.id === 'bogazici-ceng')
+assert(scorePercent(languageSensitive.score, profile) > scorePercent(weakerLanguage.score, weakerLanguageProfile), 'процент одной программы меняется от IELTS, достижений и GPA профиля')
 assert(buildPortfolioActions(profile).length >= 2 && buildPortfolioActions(profile).every((action) => action.title && action.text), 'портфолио предлагает конкретные действия под направление')
 const weakProfile = { ...poor, field: ['it'], countries: ['ОАЭ'], budget: 'low', ielts: 0, target_lang_level: '' }
 const weakChance = estimateChance(scoreAllPrograms(weakProfile), weakProfile)

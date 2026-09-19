@@ -21,9 +21,11 @@ export const SCORING_RULES = [
   { label: 'Бюджет укладывается', points: 15 },
   { label: 'Дедлайн впереди', points: 10 },
   { label: 'Достижения для грантовой программы', points: 5 },
+  { label: 'GPA > 4.5 для грантовой программы (модельное предположение)', points: 5 },
 ]
 
 const GRANT_MULTIPLIER = 1.15
+const GPA_GRANT_BONUS = 5
 const CREDIT_YEAR_MULTIPLIERS = { 9: 1.0, 10: 1.05, 11: 1.1 }
 
 export function getNow() {
@@ -155,6 +157,17 @@ function scoreProgram(program, profile) {
     reasons.push({ reason: 'Ваши олимпиады/грамоты — плюс для грантового конкурса', points: 5 })
   }
 
+  // Модельный бонус из анкеты: высокий GPA помогает грантовым вариантам,
+  // но не превращается в гарантию поступления.
+  if (Number(profile.gpa) > 4.5 && program.grant) {
+    score += GPA_GRANT_BONUS
+    reasons.push({
+      reason: 'GPA выше 4.5 поддерживает грантовую заявку (модельное предположение)',
+      points: GPA_GRANT_BONUS,
+      isModelAssumption: true,
+    })
+  }
+
   // Множитель класса: чем ближе выпуск, тем приоритетнее реалистичные варианты
   score *= CREDIT_YEAR_MULTIPLIERS[profile.grade] ?? 1
 
@@ -193,17 +206,19 @@ export function programScholarships(program) {
   return SCHOLARSHIPS.filter((s) => scholarship.includes(s.match)).map((s) => s.id)
 }
 
-// Максимально возможный score для текущих вводных: учитываем достижимость
-// бонуса за класс, достижения и грантовый приоритет, но не выдаём процент выше 100.
+// Максимально достижимый score для текущего профиля. Один общий знаменатель
+// нужен для честного сравнения программ: отсутствующий язык, бюджет или
+// дедлайн остаются потерянными баллами, а не исчезают из расчёта процента.
 export function maxScoreForProfile(profile = {}) {
   const achievementMax = profile.achievements ? 5 : 0
+  const gpaMax = Number(profile.gpa) > 4.5 ? GPA_GRANT_BONUS : 0
   const yearMultiplier = CREDIT_YEAR_MULTIPLIERS[profile.grade] ?? 1
   const grantMultiplier = profile.priority === 'grant' ? GRANT_MULTIPLIER : 1
-  return (MAX_BASE_SCORE + achievementMax) * yearMultiplier * grantMultiplier
+  return (MAX_BASE_SCORE + achievementMax + gpaMax) * yearMultiplier * grantMultiplier
 }
 
-// Процент совпадения — доля score от максимума для тех же вводных.
-// Поэтому сильные и слабые программы получают разные значения, а не общий cap 99.
+// Процент совпадения — доля фактически набранного score от максимума этого
+// профиля. Это модельное совпадение, не вероятность и не гарантия.
 export function scorePercent(score, profile = {}) {
   if (!Number.isFinite(score) || score <= 0) return 0
   return Math.min(100, Math.max(0, Math.round((score / maxScoreForProfile(profile)) * 100)))

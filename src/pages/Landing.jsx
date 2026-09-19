@@ -53,6 +53,9 @@ export default function Landing() {
                   {user ? 'Продолжить маршрут' : 'Создать аккаунт'}
                 </Link>
               </div>
+              <p className="mt-3 text-xs leading-5 text-slate-400" aria-live="polite">
+                {hasProfile ? 'Профиль сохранён — откройте рекомендации или продолжите маршрут.' : 'Начните с 8 коротких вопросов — затем сравните варианты и получите следующий шаг.'}
+              </p>
             </div>
 
             <div className="relative lg:pl-6" aria-label="Предпросмотр персонального маршрута">
