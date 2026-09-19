@@ -1,10 +1,9 @@
 import { Link } from 'react-router-dom'
 import { useProfile } from '../context/useProfile.js'
-import { buildPortfolioActions, diagnose, estimateChance } from '../engine/scoring.js'
+import { diagnose, estimateChance } from '../engine/scoring.js'
 import { getFearAccent } from '../data/fearModes.js'
 import { DemoBadge } from '../components/Badges.jsx'
 
-// Цвет уровня шансов из §8: высокие — primary, хорошие — accent, ниже — warning
 const LEVEL_STYLES = {
   'высокие': 'bg-primary-50 border-primary-200 text-primary-700',
   'хорошие': 'bg-accent-50 border-accent-200 text-accent-700',
@@ -27,7 +26,6 @@ export default function Diagnostics() {
   const d = diagnose(profile)
   const fear = getFearAccent(profile.fear)
   const chance = estimateChance(scored, profile)
-  const portfolioActions = buildPortfolioActions(profile)
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-10">
@@ -41,19 +39,15 @@ export default function Diagnostics() {
         </div>
       )}
 
-      {/* Цель */}
       <section className="card p-6 mt-6">
         <h2 className="text-xs font-bold uppercase tracking-wide text-slate-400">Образовательная цель</h2>
-        <p className="mt-2 text-lg font-semibold text-slate-900">
-          {d.goal} · {profile.countries.join(' + ')}
-        </p>
+        <p className="mt-2 text-lg font-semibold text-slate-900">{d.goal} · {profile.countries.join(' + ')}</p>
         <p className="text-sm text-slate-500 mt-1">
           {profile.grade} класс · бюджет: {profile.budget === 'low' ? 'низкий' : profile.budget === 'mid' ? 'средний' : 'высокий'} ·
           приоритет: {profile.priority === 'grant' ? 'грант' : 'платное ок'}
         </p>
       </section>
 
-      {/* Сильные стороны */}
       <section className="mt-6">
         <h2 className="text-lg font-bold text-slate-900">Сильные стороны</h2>
         <div className="mt-3 grid gap-3 sm:grid-cols-2">
@@ -66,7 +60,6 @@ export default function Diagnostics() {
         </div>
       </section>
 
-      {/* Риски */}
       {d.risks.length > 0 && (
         <section className="mt-6">
           <h2 className="text-lg font-bold text-slate-900">На что обратить внимание</h2>
@@ -81,8 +74,6 @@ export default function Diagnostics() {
         </section>
       )}
 
-      {/* Оценка шансов (§8): среднее top-3 score → проценты. Обязательная пометка
-          «оценочно, не гарантия» — это перевод модельного скоринга, не вероятность */}
       <section className="card p-6 mt-6">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <h2 className="text-xs font-bold uppercase tracking-wide text-slate-400">Оценка шансов — топ-3 программы</h2>
@@ -101,54 +92,26 @@ export default function Diagnostics() {
         <div className="mt-4 space-y-2">
           {chance.top.map((t) => (
             <div key={t.id} className="flex items-center gap-3">
-              <div className="flex-1 min-w-0">
-                <div className="h-2 rounded-full bg-slate-100 overflow-hidden">
-                  <div className="h-full rounded-full bg-primary-500 transition-all duration-500" style={{ width: `${t.percent}%` }} />
-                </div>
-              </div>
+              <div className="flex-1 min-w-0"><div className="h-2 rounded-full bg-slate-100 overflow-hidden"><div className="h-full rounded-full bg-primary-500 transition-all duration-500" style={{ width: `${t.percent}%` }} /></div></div>
               <span className="text-xs text-slate-600 truncate max-w-[45%] text-right">{t.university} · {t.percent}%</span>
             </div>
           ))}
         </div>
       </section>
 
-      <section className="card p-6 mt-6">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <div>
-            <h2 className="text-lg font-bold text-slate-900">Усилить портфолио</h2>
-            <p className="text-sm text-slate-500 mt-1">Конкретные действия под выбранное направление</p>
-          </div>
-          <DemoBadge text="оценочные идеи" />
-        </div>
-        <div className="mt-4 grid gap-3 sm:grid-cols-3">
-          {portfolioActions.map((action) => (
-            <div key={action.id} className="rounded-xl border border-slate-200 bg-slate-50/70 p-4">
-              <h3 className="font-semibold text-sm text-slate-900">{action.title}</h3>
-              <p className="mt-1 text-sm text-slate-600">{action.text}</p>
-            </div>
-          ))}
-        </div>
-        <p className="mt-3 text-xs text-slate-400">Это идеи для усиления заявки, а не требование конкретного вуза.</p>
-      </section>
-
-      {/* Модельное предположение из спеки — с обязательным бейджем */}
       {d.highGpaGrantFlag && (
         <div className="card p-4 mt-6 bg-warning-50/50">
           <div className="flex flex-wrap items-center gap-2">
             <span className="font-semibold text-sm text-slate-900">GPA &gt; 4.5 — вы в зоне топ-грантов</span>
             <DemoBadge text="демонстрационная оценка" />
           </div>
-          <p className="text-sm text-slate-600 mt-1">
-            Это модельное предположение для демо-логики, а не гарантия. Реальные критерии смотрите на turkiyeburslari.gov.tr.
-          </p>
+          <p className="text-sm text-slate-600 mt-1">Это модельное предположение для демо-логики, а не гарантия. Реальные критерии смотрите на turkiyeburslari.gov.tr.</p>
         </div>
       )}
 
-      {/* Реактивность: видимая связь с профилем */}
+
       <div className="mt-6 card p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-50/50">
-        <p className="text-sm text-slate-600">
-          Найдено подходящих программ: <b>{scored.length}</b> — пересчитывается при любом изменении профиля.
-        </p>
+        <p className="text-sm text-slate-600">Найдено подходящих программ: <b>{scored.length}</b> — пересчитывается при любом изменении профиля.</p>
         <div className="flex gap-2">
           <Link to="/profile" className="btn-secondary text-xs">Изменить анкету</Link>
           <Link to="/recommendations" className="btn-primary text-xs">К рекомендациям →</Link>

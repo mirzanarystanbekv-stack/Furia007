@@ -525,6 +525,7 @@ export default function Recommendations() {
         </div>
       )}
 
+
       <div className="mt-8 flex flex-col sm:flex-row justify-between gap-3 pb-10">
         <Link to="/diagnostics" className="btn-ghost text-sm">← Назад к диагностике</Link>
         <Link to="/compare" className="btn-primary">Далее: сравнить варианты →</Link>

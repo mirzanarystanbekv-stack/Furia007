@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
 import { useProfile } from '../context/useProfile.js'
 import { GRADES, FIELDS, COUNTRIES, TARGET_LANGUAGES, BUDGETS, PRIORITIES, FEARS } from '../data/options.js'
+import ProfileTools from '../components/ProfileTools.jsx'
 
 function Choice({ options, value, onChange, columns = 1 }) {
   const cols = columns >= 3 ? 'sm:grid-cols-3' : columns === 2 ? 'sm:grid-cols-2' : ''
@@ -109,7 +110,7 @@ export default function ProfilePage() {
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div>
             <p className="text-sm font-semibold text-primary-900">
-              {completedFields === 0 ? 'Начните с трёх базовых ответов' : completedFields === 8 ? 'Профиль готов к диагностике' : 'Профиль заполняется'}
+              {completedFields === 0 ? 'Начните с трёх базовых ответов' : completedFields === 8 ? 'Ответы сохранены' : 'Профиль заполняется'}
             </p>
             <p className="mt-1 text-xs text-primary-700">
               {completedFields === 0 ? 'Выберите класс, направление и хотя бы одну страну — этого достаточно, чтобы начать.' : 'Можно менять ответы в любой момент — рекомендации пересчитаются сами.'}
@@ -232,25 +233,25 @@ export default function ProfilePage() {
           <Choice options={FEARS} value={profile.fear} onChange={(v) => updateProfile({ fear: v })} />
         </section>
 
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pb-16">
-          <span className={`text-sm ${filled ? 'text-primary-600' : 'text-slate-400'}`}>
-            {filled ? '✓ Профиль заполнен — можно смотреть диагностику' : 'Заполните класс, направление и хотя бы одну страну'}
-          </span>
-          {filled ? (
-            <Link to="/diagnostics" className="btn-primary">
-              Далее: Диагностика →
-            </Link>
-          ) : (
-            <span
-              className="btn-primary cursor-not-allowed opacity-50"
-              aria-disabled="true"
-              title="Заполните класс, направление и хотя бы одну страну"
-            >
-              Далее: Диагностика →
-            </span>
-          )}
-        </div>
       </form>
+
+      <ProfileTools />
+
+      <div className="flex flex-col sm:flex-row items-center justify-end gap-3 pb-16">
+        {filled ? (
+          <Link to="/diagnostics" className="btn-primary">
+            Далее: Диагностика →
+          </Link>
+        ) : (
+          <span
+            className="btn-primary cursor-not-allowed opacity-50"
+            aria-disabled="true"
+            title="Заполните класс, направление и хотя бы одну страну"
+          >
+            Далее: Диагностика →
+          </span>
+        )}
+      </div>
     </div>
   )
 }
