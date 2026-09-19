@@ -17,7 +17,7 @@ const TESTIMONIALS = [
 const ROUTE_STEPS = [
   { label: 'Профиль', text: '8 вопросов', state: 'done', to: '/profile' },
   { label: 'Диагностика', text: 'ваши сильные стороны', state: 'done', to: '/diagnostics' },
-  { label: 'Рекомендации', text: '123 программы', state: 'active', to: '/recommendations' },
+  { label: 'Рекомендации', text: 'демо-подборка вариантов', state: 'active', to: '/recommendations' },
   { label: 'Roadmap', text: 'следующий шаг', state: 'next', to: '/roadmap' },
 ]
 
@@ -28,10 +28,10 @@ export default function Landing() {
     <div className="bg-slate-950 text-white overflow-hidden">
       <section className="relative min-h-[680px] flex items-center">
         <div className="absolute inset-0 pointer-events-none" aria-hidden="true">
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_15%_20%,rgba(29,158,117,0.24),transparent_34%),radial-gradient(circle_at_85%_15%,rgba(58,130,246,0.2),transparent_32%),linear-gradient(135deg,#07131d_0%,#0b1724_52%,#101629_100%)]" />
-          <div className="absolute inset-0 opacity-30 [background-image:linear-gradient(rgba(255,255,255,0.05)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.05)_1px,transparent_1px)] [background-size:48px_48px]" />
-          <div className="absolute -left-20 top-24 h-80 w-80 rounded-full bg-primary-500/20 blur-3xl animate-pulse" />
-          <div className="absolute right-[-80px] bottom-16 h-96 w-96 rounded-full bg-blue-500/20 blur-3xl animate-pulse [animation-delay:900ms]" />
+          <div className="absolute -inset-24 bg-[radial-gradient(ellipse_at_12%_18%,rgba(29,158,117,0.16),transparent_42%),radial-gradient(ellipse_at_88%_8%,rgba(58,130,246,0.14),transparent_43%),linear-gradient(135deg,#07131d_0%,#0b1724_52%,#101629_100%)] blur-2xl" />
+          <div className="absolute inset-0 opacity-20 [background-image:linear-gradient(rgba(255,255,255,0.05)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.05)_1px,transparent_1px)] [background-size:48px_48px]" />
+          <div className="absolute -left-40 top-0 h-[30rem] w-[34rem] rounded-full bg-primary-500/10 blur-[110px]" />
+          <div className="absolute -right-48 -top-24 h-[34rem] w-[38rem] rounded-full bg-blue-500/10 blur-[120px]" />
         </div>
 
         <div className="relative z-10 max-w-6xl mx-auto w-full px-4 py-16 sm:py-24">
@@ -39,7 +39,7 @@ export default function Landing() {
             <div>
               <h1 className="mt-6 max-w-3xl text-4xl font-semibold leading-[1.08] tracking-tight text-white sm:text-6xl">
                 МаршрутПоступления
-                <span className="block bg-gradient-to-r from-primary-300 via-cyan-200 to-blue-300 bg-clip-text text-transparent">делает первый экран конкретным.</span>
+                <span className="block bg-gradient-to-r from-primary-300 via-cyan-200 to-blue-300 bg-clip-text text-transparent">Один маршрут вместо десятков вкладок.</span>
               </h1>
               <p className="mt-6 max-w-xl text-base leading-7 text-slate-300 sm:text-lg">
                 Не просто каталог вузов. Один персональный маршрут: от анкеты и честных рекомендаций до понятного действия, которое можно сделать сегодня.
@@ -56,9 +56,9 @@ export default function Landing() {
             </div>
 
             <div className="relative lg:pl-6" aria-label="Предпросмотр персонального маршрута">
-              <div className="absolute -inset-8 rounded-[2rem] bg-primary-400/10 blur-3xl" />
-              <div className="relative rounded-[1.75rem] border border-white/15 bg-white/[0.07] p-3 shadow-2xl backdrop-blur-xl">
-                <div className="rounded-2xl border border-white/10 bg-slate-950/70 p-5 sm:p-6">
+              <div className="absolute -inset-10 rounded-[2rem] bg-primary-400/10 blur-[90px]" />
+              <div className="relative rounded-[1.75rem] border border-white/25 bg-slate-800/80 p-3 shadow-[0_28px_80px_rgba(0,0,0,0.45)] backdrop-blur-xl">
+                <div className="rounded-2xl border border-white/15 bg-slate-900/95 p-5 shadow-inner sm:p-6">
                   <div className="flex items-center justify-between border-b border-white/10 pb-4">
                     <div>
                       <p className="text-[10px] uppercase tracking-[0.2em] text-primary-300">live route preview</p>
@@ -107,9 +107,9 @@ export default function Landing() {
                   </div>
                 </div>
               </div>
-              <div className="absolute -bottom-5 -left-2 hidden rounded-xl border border-white/15 bg-slate-900/90 px-4 py-3 shadow-xl backdrop-blur sm:block">
-                <p className="text-[10px] uppercase tracking-wider text-slate-500">подходящих программ</p>
-                <p className="mt-1 text-xl font-semibold text-white">123 <span className="text-xs font-normal text-primary-300">найдено</span></p>
+              <div className="absolute -bottom-5 -left-2 hidden rounded-xl border border-white/20 bg-slate-800/95 px-4 py-3 shadow-xl backdrop-blur sm:block">
+                <p className="text-[10px] uppercase tracking-wider text-slate-400">демо-подборка</p>
+                <p className="mt-1 text-sm font-semibold text-white">Настройте профиль <span className="text-xs font-normal text-primary-300">для своих вариантов</span></p>
               </div>
             </div>
           </div>
